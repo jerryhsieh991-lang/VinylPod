@@ -75,54 +75,106 @@ struct ModeContentView: View {
             .padding(20)
     }
 
-    /// Normal: a glass panel with title/artist, progress, and transport.
+    /// Normal: the signature COMPACT GLASS WIDGET — a horizontal card with the
+    /// album art (carrying the in-art X / window-behavior popover) on the left,
+    /// track info + progress + transport in the middle, and the three-dots
+    /// settings menu pinned top-right.
     private var normalContent: some View {
-        VStack(spacing: 14) {
-            if nowPlaying.track.isEmpty {
-                emptyHint
-            } else {
-                trackHeader(titleSize: 15, artistSize: 12, alignment: .center)
-                ProgressBarView()
-                TransportControls(playSize: 46)
-                    .padding(.top, 2)
+        ZStack(alignment: .topTrailing) {
+            Group {
+                if nowPlaying.track.isEmpty {
+                    emptyHint
+                        .frame(maxWidth: 320)
+                } else {
+                    HStack(spacing: 14) {
+                        AlbumArtCloseButton(
+                            artwork: nowPlaying.track.artwork,
+                            currentLayer: settings.desktopLayer,
+                            onSelectLayer: selectLayer,
+                            onQuit: quit
+                        )
+                        .frame(width: 78, height: 78)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            trackHeader(titleSize: 15, artistSize: 12, alignment: .leading)
+                            if settings.showProgress { ProgressBarView() }
+                            TransportControls(playSize: 38)
+                        }
+                    }
+                    .frame(maxWidth: 320)
+                }
             }
+            .padding(20)
+            .padding(.trailing, 8)            // room for the three-dots button
+            .glassBackground(cornerRadius: VPTheme.radius)
+
+            settingsButton.padding(12)
         }
-        .padding(20)
-        .frame(maxWidth: 340)
-        .glassBackground(cornerRadius: VPTheme.radius)
         .padding(18)
     }
 
-    /// Large: album artwork, full metadata + source chip, progress, transport.
+    /// Large: album artwork (with the in-art X), full metadata + source chip,
+    /// progress, transport, and the three-dots settings menu top-right.
     private var largeContent: some View {
-        VStack(spacing: 20) {
-            artwork(size: 260)
+        ZStack(alignment: .topTrailing) {
+            VStack(spacing: 20) {
+                AlbumArtCloseButton(
+                    artwork: nowPlaying.track.artwork,
+                    currentLayer: settings.desktopLayer,
+                    onSelectLayer: selectLayer,
+                    onQuit: quit
+                )
+                .frame(width: 260, height: 260)
 
-            if nowPlaying.track.isEmpty {
-                emptyHint
-            } else {
-                VStack(spacing: 6) {
-                    trackHeader(titleSize: 20, artistSize: 14, alignment: .center)
-                    if !nowPlaying.track.album.isEmpty {
-                        Text(nowPlaying.track.album)
-                            .font(VPTheme.body(12))
-                            .foregroundStyle(VPTheme.textMuted)
-                            .lineLimit(1)
+                if nowPlaying.track.isEmpty {
+                    emptyHint
+                } else {
+                    VStack(spacing: 6) {
+                        trackHeader(titleSize: 20, artistSize: 14, alignment: .center)
+                        if !nowPlaying.track.album.isEmpty {
+                            Text(nowPlaying.track.album)
+                                .font(VPTheme.body(12))
+                                .foregroundStyle(VPTheme.textMuted)
+                                .lineLimit(1)
+                        }
+                        sourceChip
+                            .padding(.top, 4)
                     }
-                    sourceChip
+
+                    if settings.showProgress { ProgressBarView() }
+                    TransportControls(playSize: 60)
                         .padding(.top, 4)
                 }
-
-                ProgressBarView()
-                TransportControls(playSize: 60)
-                    .padding(.top, 4)
             }
+            .padding(28)
+            .frame(maxWidth: 380)
+            .glassBackground(cornerRadius: VPTheme.radiusLarge)
+
+            settingsButton.padding(16)
         }
-        .padding(28)
-        .frame(maxWidth: 380)
-        .glassBackground(cornerRadius: VPTheme.radiusLarge)
         .padding(24)
     }
+
+    // MARK: - Widget chrome handlers
+
+    /// Three-dots settings menu, wired to the live window via WindowCoordinator.
+    private var settingsButton: some View {
+        SettingsMenuButton(onSelectSize: selectSize, onQuit: quit)
+    }
+
+    /// "Above all windows" / "Below all windows" from the in-art popover.
+    private func selectLayer(_ layer: DesktopLayer) {
+        settings.desktopLayer = layer
+        WindowCoordinator.shared.manager?.applyStacking(layer)
+    }
+
+    /// Window-size change from the settings menu.
+    private func selectSize(_ mode: WindowMode) {
+        settings.windowMode = mode
+        WindowCoordinator.shared.manager?.apply(mode: mode)
+    }
+
+    private func quit() { NSApp.terminate(nil) }
 
     /// Desktop widget: visual-first. A large calm composition (the artwork if
     /// present, else the bare landscape with a tasteful caption). The controls

@@ -158,6 +158,35 @@ final class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(customBackgroundURL, forKey: "customBackgroundURL") }
     }
 
+    // MARK: - Settings-menu backed state (reference "three-dots" dropdown)
+
+    /// "Music Player Source" radio group.
+    @Published var musicSource: PlaybackSource = .spotify {
+        didSet { UserDefaults.standard.set(musicSource.rawValue, forKey: "musicSource") }
+    }
+    /// "Vinyl Style" radio group.
+    @Published var vinylStyle: VinylStyle = .image {
+        didSet { UserDefaults.standard.set(vinylStyle.rawValue, forKey: "vinylStyle") }
+    }
+
+    /// Simple boolean toggles from the dropdown. Persisted by key = property name.
+    @Published var showProgress      = true  { didSet { persist("showProgress", showProgress) } }
+    @Published var keepWindowInFront = true  { didSet { persist("keepWindowInFront", keepWindowInFront) } }
+    @Published var dynamicNotch      = true  { didSet { persist("dynamicNotch", dynamicNotch) } }
+    @Published var showInMenuBar     = true  { didSet { persist("showInMenuBar", showInMenuBar) } }
+    @Published var launchAtLogin     = false { didSet { persist("launchAtLogin", launchAtLogin) } }
+    @Published var showArtworkInDock = true  { didSet { persist("showArtworkInDock", showArtworkInDock) } }
+    @Published var hideDockIcon      = true  { didSet { persist("hideDockIcon", hideDockIcon) } }
+    @Published var coverArtAsWallpaper = false { didSet { persist("coverArtAsWallpaper", coverArtAsWallpaper) } }
+    @Published var hideNotchInFullscreen = false { didSet { persist("hideNotchInFullscreen", hideNotchInFullscreen) } }
+
+    private func persist(_ key: String, _ value: Bool) {
+        UserDefaults.standard.set(value, forKey: key)
+    }
+    private static func bool(_ key: String, default def: Bool) -> Bool {
+        UserDefaults.standard.object(forKey: key) as? Bool ?? def
+    }
+
     init() {
         if let raw = UserDefaults.standard.string(forKey: "windowMode"),
            let m = WindowMode(rawValue: raw) { windowMode = m }
@@ -165,6 +194,19 @@ final class AppSettings: ObservableObject {
            let l = DesktopLayer(rawValue: raw) { desktopLayer = l }
         useAdaptiveAccent = UserDefaults.standard.object(forKey: "useAdaptiveAccent") as? Bool ?? true
         customBackgroundURL = UserDefaults.standard.url(forKey: "customBackgroundURL")
+        if let raw = UserDefaults.standard.string(forKey: "musicSource"),
+           let s = PlaybackSource(rawValue: raw) { musicSource = s }
+        if let raw = UserDefaults.standard.string(forKey: "vinylStyle"),
+           let v = VinylStyle(rawValue: raw) { vinylStyle = v }
+        showProgress      = Self.bool("showProgress", default: true)
+        keepWindowInFront = Self.bool("keepWindowInFront", default: true)
+        dynamicNotch      = Self.bool("dynamicNotch", default: true)
+        showInMenuBar     = Self.bool("showInMenuBar", default: true)
+        launchAtLogin     = Self.bool("launchAtLogin", default: false)
+        showArtworkInDock = Self.bool("showArtworkInDock", default: true)
+        hideDockIcon      = Self.bool("hideDockIcon", default: true)
+        coverArtAsWallpaper = Self.bool("coverArtAsWallpaper", default: false)
+        hideNotchInFullscreen = Self.bool("hideNotchInFullscreen", default: false)
     }
 
     func setAccent(from color: Color?) {

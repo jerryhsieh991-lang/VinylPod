@@ -25,9 +25,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleName</key>            <string>VinylPod</string>
-    <key>CFBundleDisplayName</key>     <string>VinylPod</string>
-    <key>CFBundleIdentifier</key>      <string>com.vinylpod.mac</string>
+    <key>CFBundleName</key>            <string>VinylPod Widget</string>
+    <key>CFBundleDisplayName</key>     <string>VinylPod Widget</string>
+    <key>CFBundleIdentifier</key>      <string>com.vinylpod.widget</string>
     <key>CFBundleVersion</key>         <string>1.0</string>
     <key>CFBundleShortVersionString</key><string>1.0</string>
     <key>CFBundlePackageType</key>     <string>APPL</string>
