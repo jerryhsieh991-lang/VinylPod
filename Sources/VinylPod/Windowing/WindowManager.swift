@@ -116,6 +116,24 @@ final class WindowManager {
         }
     }
 
+    /// Apply window stacking from the in-art "Window behavior" popover, in ANY
+    /// mode. In the desktop widget this defers to the desktop-icon-aware logic;
+    /// for the floating card modes it maps to ordinary window levels.
+    ///   - `.front`: float above other app windows.
+    ///   - `.back`:  drop to the normal level so other windows can cover it
+    ///               (full behind-desktop-icons placement only applies to the widget).
+    func applyStacking(_ layer: DesktopLayer) {
+        guard let window else { return }
+        if currentMode == .desktopWidget {
+            apply(desktopLayer: layer)
+            return
+        }
+        switch layer {
+        case .front: window.level = .floating
+        case .back:  window.level = .normal
+        }
+    }
+
     // MARK: - Window construction
 
     /// Returns the existing window if it already matches the style class for

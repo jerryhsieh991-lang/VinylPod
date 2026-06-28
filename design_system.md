@@ -107,3 +107,82 @@ Four shared-language sizes (same shape, different scale & control density):
 ---
 
 *Prepared by your Professional Project Questioner. Pending founder sign-off before any code is written.*
+
+---
+
+# Compact Glass Widget — Extracted from Reference Screenshots (2026-06-28)
+
+## Glassmorphism tokens (native NSVisualEffectView + overlays)
+- Material: `.hudWindow` / `.popover`, blendingMode `.behindWindow`, state `.active`.
+- Tint over blur: mauve/dark-slate — `rgba(255,255,255,0.06)` lightening + a subtle
+  warm-mauve wash `rgba(180,150,170,0.10)` for the player body.
+- **Inner 3D border stroke** (the depth cue in the photos): a 1px stroke that is
+  brighter at the top (`white @ 0.35`) fading to dark at the bottom (`black @ 0.25`),
+  i.e. a top-lit bevel. Implement as an overlay rounded-rect with a linear-gradient stroke.
+- Corner radius: container `radiusLarge (22)`; album art `radius (14)`; menus `radius (14)`.
+- Drop shadow: `black @ 0.45`, radius ~18, y ~6.
+
+## The 'X' close button (CRITICAL placement)
+- Lives INSIDE the album-art square, top-left corner, inset ~8pt.
+- Semi-transparent dark circle `black @ 0.45`, ~22pt diameter, `xmark` glyph white @ 0.9.
+- Appears on hover over the art (fades in); click opens the Window-behavior popover.
+
+## 'X' → Window-behavior popover (exact items)
+```
+Window behavior            (header, dimmed)
+✓ Above all windows
+  Below all windows
+  ────────────
+  Quit
+```
+Maps to: DesktopLayer.front (Above) / .back (Below) applied to the live window; Quit = NSApp.terminate.
+
+## Three-dots Settings dropdown (exact hierarchy, top→bottom)
+```
+You're a Pro               (status row, dimmed)
+Music Player Source        (section header)
+  Apple Music
+  Spotify                  (focus/selected highlight)
+✓ Safari Music
+  Safari Music Guide
+Music Player Size          (section header)
+✓ Small
+  Medium
+  Regular
+  Large
+  Desktop
+  ────────────
+✓ Dynamic notch
+✓ Show in Menu Bar
+Vinyl Style                (section header)
+  Vinyl
+✓ Image
+✓ Show progress
+  ────────────
+✓ Keep Window in Front
+  Launch at Login
+✓ Show Artwork in Dock
+✓ Hide Dock Icon
+  Cover art as wallpaper
+  Hide notch in fullscreen
+  ────────────
+  Keyboard shortcuts
+  Appearance
+  ────────────
+  Rate us
+  Share our app            (share glyph)
+  About
+  ────────────
+  Quit
+```
+Section headers: `VPTheme.caption()` dimmed, uppercased-ish, non-interactive.
+Checkable rows: leading checkmark column (✓ when on); hover highlight `white @ 0.06`.
+Radio groups: Music Player Source, Music Player Size, Vinyl Style (single selection).
+Toggles: Dynamic notch, Show in Menu Bar, Show progress, Keep Window in Front,
+Launch at Login, Show Artwork in Dock, Hide Dock Icon, Cover art as wallpaper,
+Hide notch in fullscreen.
+Actions: Keyboard shortcuts, Appearance, Rate us, Share our app, About, Quit.
+
+## Menu motion (default chosen)
+Open: scale 0.96→1.0 + opacity 0→1 over `VPTheme.spring`, anchored to trigger.
+Dismiss on outside-click / Esc with a quick `VPTheme.fade`.

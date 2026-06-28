@@ -100,6 +100,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // --- Install ⌘1–⌘4 keyboard shortcuts --------------------------------
         installModeShortcuts()
+
+        // --- "Open with" / CLI support ---------------------------------------
+        // Any audio file paths passed as launch arguments are played at startup,
+        // e.g. `open VinylPod.app --args "/path/Song.mp3"`.
+        let argURLs = CommandLine.arguments.dropFirst()
+            .map { URL(fileURLWithPath: $0) }
+            .filter { FileManager.default.fileExists(atPath: $0.path) && NowPlayingService.isAudio($0) }
+        if !argURLs.isEmpty {
+            env.nowPlaying.load(urls: Array(argURLs))
+        }
+    }
+
+    /// Finder "Open With" / drag-onto-icon support.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        let audio = urls.filter { NowPlayingService.isAudio($0) }
+        guard !audio.isEmpty else { return }
+        AppEnvironment.shared.nowPlaying.load(urls: audio)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -119,9 +136,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// added later for system-wide hotkeys, but that would require Accessibility
     /// permission, so we keep it local for now.
     private func installModeShortcuts() {
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self else { return event }
-
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             // Require exactly Command (ignore other modifiers like Shift/Option).
             let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
             guard mods == .command else { return event }

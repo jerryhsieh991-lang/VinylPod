@@ -1,0 +1,34 @@
+{
+  "target": "native-swiftui",
+  "description": "Compact Glass Widget \u2014 native SwiftUI build of the reference VinylPod player chrome (in-art X + window-behavior popover, three-dots settings menu).",
+  "nodes": {
+    "Core_Settings_State": {
+      "done": true,
+      "notes": "Add to AppSettings: musicSource, vinylStyle, showProgress, keepWindowInFront, dynamicNotch, showInMenuBar, launchAtLogin, showArtworkInDock, hideDockIcon, coverArtAsWallpaper, hideNotchInFullscreen. Add VinylStyle enum + reuse DesktopLayer as window stacking."
+    },
+    "Glass_Base_Container": {
+      "done": true,
+      "notes": "Reuse/upgrade GlassPanel: frosted backdrop, inner 3D border stroke (bright top, dark bottom), mauve/dark-slate tint, rounded corners."
+    },
+    "Album_Art_With_Inner_X": {
+      "done": true,
+      "notes": "Album art square; X close button = semi-transparent dark circle INSIDE the art at top-left."
+    },
+    "X_Window_Behavior_Menu": {
+      "done": true,
+      "notes": "Glass popover from X: header 'Window behavior'; 'Above all windows' (check), 'Below all windows'; divider; 'Quit'."
+    },
+    "Playback_Controls_UI": {
+      "done": true,
+      "notes": "prev / play-pause / next; accent-tinted play; optional progress bar (showProgress)."
+    },
+    "Settings_Dropdown_Menu": {
+      "done": true,
+      "notes": "Three-dots trigger -> long scrollable glass dropdown with all sections + checkmarks (see design_system.md)."
+    },
+    "Integration": {
+      "done": true,
+      "notes": "Compact widget layout wired into ModeContentView (.small/.normal); WindowManager applies stacking in all modes; build + visual verify."
+    }
+  }
+}

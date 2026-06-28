@@ -92,10 +92,21 @@ enum WindowMode: String, Codable, CaseIterable, Identifiable {
 }
 
 /// Desktop-widget stacking: in front of every window, or behind everything
-/// (below the desktop icons), per the PRD.
+/// (below the desktop icons), per the PRD. Also used by the in-art
+/// "Window behavior" popover (Above all windows / Below all windows).
 enum DesktopLayer: String, Codable, CaseIterable {
     case front
     case back
 
     var displayName: String { self == .front ? "In Front" : "Behind" }
+    /// Label as shown in the in-art Window-behavior popover.
+    var behaviorLabel: String { self == .front ? "Above all windows" : "Below all windows" }
+}
+
+/// How the center label / artwork is rendered (from the settings "Vinyl Style").
+enum VinylStyle: String, Codable, CaseIterable {
+    case vinyl   // spinning record with art on the label
+    case image   // flat album-art card
+
+    var displayName: String { self == .vinyl ? "Vinyl" : "Image" }
 }
