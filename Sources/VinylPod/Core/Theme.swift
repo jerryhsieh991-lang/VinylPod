@@ -43,3 +43,9 @@ enum VPTheme {
     static func body(_ size: CGFloat = 12)  -> Font { .system(size: size, weight: .regular) }
     static func caption(_ size: CGFloat = 10) -> Font { .system(size: size, weight: .medium) }
 }
+
+/// CLT workaround: the macOS 26+ SDK declares `@State` as a *macro* whose
+/// `SwiftUIMacros` plugin ships only with full Xcode, not Command Line Tools.
+/// Aliasing the property-wrapper TYPE dodges the macro of the same name, so
+/// view-local state uses `@VPState` instead of `@State`. Identical behavior.
+typealias VPState = SwiftUI.State
