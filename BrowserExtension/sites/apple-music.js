@@ -86,6 +86,14 @@
         q(".web-chrome-playback-lcd img");
       var artwork = "";
       if (imgEl) artwork = imgEl.currentSrc || imgEl.src || "";
+      // Quality: Apple/mzstatic art URLs carry a WxH segment (the LCD thumb is
+      // ~100px). Rewrite it — and the {w}x{h} template form — to 1000px.
+      if (artwork) {
+        artwork = artwork
+          .replace(/\{w\}x\{h\}/i, "1000x1000")
+          .replace(/\/\d+x\d+((?:bb|cc|sr|fn|bf|[a-z]{1,2})?)\.(jpe?g|png|webp)/i,
+                   "/1000x1000$1.$2");
+      }
 
       // Times
       var currentTime = parseTime(

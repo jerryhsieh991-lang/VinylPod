@@ -65,10 +65,14 @@
     );
   }
 
-  // Artwork: derive the canonical thumbnail from the ?v= video id. Best-effort;
-  // empty string if there's no id (e.g. not a /watch URL).
+  // Artwork: prefer the page's og:image (the official high-res thumbnail, often
+  // maxres) for a sharp cover; fall back to the guaranteed hqdefault built from
+  // the ?v= id. (We avoid blindly using maxresdefault.jpg because it 404s for
+  // videos without an HD thumbnail, which would leave the art blank.)
   function parseArtwork() {
     try {
+      const og = document.querySelector('meta[property="og:image"]');
+      if (og && og.content) return og.content;
       const id = new URLSearchParams(location.search).get("v");
       return id ? "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg" : "";
     } catch (e) {
