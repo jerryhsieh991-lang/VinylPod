@@ -106,10 +106,13 @@ final class BrowserBridge {
         loadArtwork(p.artwork) { [weak self] image in
             guard let self else { return }
             Task { @MainActor in
-                // "Music Player Source" filter: only surface the source the user
-                // selected in settings (Apple Music / Spotify / Safari Music=browser).
-                // A locally-played file is never affected (it doesn't come through here).
-                guard source == AppEnvironment.shared.settings.musicSource else { return }
+                // Show whatever the extension sends. It already aggregates to the
+                // single ACTIVE (playing-preferred) tab, so a hard per-source gate
+                // here just silently dropped YouTube/Apple frames whenever the
+                // "Music Player Source" setting (default .spotify) didn't match —
+                // which read as "nothing works". The setting stays a soft
+                // preference in the picker UI, not a drop here. Local files never
+                // reach this path, so they're unaffected.
                 let track = Track(title: title, artist: artist, album: album,
                                   artwork: image, duration: duration,
                                   source: source, url: nil)
