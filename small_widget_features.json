@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "project": "VinylPod small widget rebuild",
+  "source_of_truth": [
+    "Screenshot 2026-06-28 at 2.45.02 PM.png",
+    "Screenshot 2026-06-28 at 2.44.56 PM.png",
+    "Screenshot 2026-06-28 at 2.44.48 PM.png",
+    "Screenshot 2026-06-28 at 2.45.11 PM.png"
+  ],
+  "target_size": {
+    "width": 162,
+    "height": 162
+  },
+  "nodes": [
+    {
+      "id": "Glass_Container",
+      "done": true,
+      "description": "Small rounded glass square with dusty pink tint, 18 pt continuous corners, and subtle frosted material."
+    },
+    {
+      "id": "Album_Art_With_Inner_X",
+      "done": true,
+      "description": "98 x 98 album artwork near top-left with the close x button inside the art bounds at the artwork top-left."
+    },
+    {
+      "id": "Top_Right_Settings_Dots",
+      "done": true,
+      "description": "Three-dot settings trigger pinned to the widget top-right corner."
+    },
+    {
+      "id": "Bottom_Playback_Controls",
+      "done": true,
+      "description": "Bottom dark translucent strip with stopped or playing text and previous/play/next controls."
+    }
+  ],
+  "states": {
+    "stopped": "Shows Music is stopped. plus Please play music on Spotify... copy.",
+    "playing": "Shows track title, artist, optional progress, and transport controls."
+  }
+}

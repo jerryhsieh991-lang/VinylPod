@@ -50,11 +50,12 @@ struct Track: Equatable {
     }
 }
 
-/// The four runtime-selectable window sizes. Same visual language, different
+/// The runtime-selectable window sizes. Same visual language, different
 /// scale and control density.
 enum WindowMode: String, Codable, CaseIterable, Identifiable {
     case small
     case normal
+    case regular
     case large
     case desktopWidget
 
@@ -63,9 +64,10 @@ enum WindowMode: String, Codable, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .small:         return "Small"
-        case .normal:        return "Normal"
+        case .normal:        return "Medium"
+        case .regular:       return "Regular"
         case .large:         return "Large"
-        case .desktopWidget: return "Desktop Widget"
+        case .desktopWidget: return "Desktop"
         }
     }
 
@@ -73,20 +75,22 @@ enum WindowMode: String, Codable, CaseIterable, Identifiable {
     /// by the WindowManager, so this is just a sensible fallback).
     var defaultSize: CGSize {
         switch self {
-        case .small:         return CGSize(width: 180, height: 180)
-        case .normal:        return CGSize(width: 360, height: 200)
+        case .small:         return CGSize(width: 162, height: 162)
+        case .normal:        return CGSize(width: 344, height: 132)
+        case .regular:       return CGSize(width: 300, height: 360)
         case .large:         return CGSize(width: 420, height: 540)
         case .desktopWidget: return CGSize(width: 1280, height: 800)
         }
     }
 
-    /// Keyboard shortcut digit (⌘1…⌘4).
+    /// Keyboard shortcut digit (⌘1…⌘5).
     var shortcutKey: Character {
         switch self {
         case .small: return "1"
         case .normal: return "2"
-        case .large: return "3"
-        case .desktopWidget: return "4"
+        case .regular: return "3"
+        case .large: return "4"
+        case .desktopWidget: return "5"
         }
     }
 }

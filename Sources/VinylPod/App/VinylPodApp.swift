@@ -126,9 +126,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // MARK: - Keyboard shortcuts (⌘1–⌘4 → window modes)
+    // MARK: - Keyboard shortcuts (⌘1–⌘5 → window modes)
 
-    /// Installs a local key-down monitor that maps ⌘1…⌘4 to the four
+    /// Installs a local key-down monitor that maps ⌘1…⌘5 to the
     /// `WindowMode`s. Because this is a menu-bar accessory app there is no normal
     /// window menu to host `.keyboardShortcut` items, so we intercept the events
     /// directly. The local monitor fires when the app has key focus (e.g. the

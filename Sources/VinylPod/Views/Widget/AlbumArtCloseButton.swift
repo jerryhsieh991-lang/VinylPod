@@ -15,6 +15,10 @@ struct AlbumArtCloseButton: View {
 
     let artwork: NSImage?
     var cornerRadius: CGFloat = VPTheme.radius
+    var alwaysShowCloseButton = false
+    var closeButtonSize: CGFloat = 22
+    var closeButtonInset: CGFloat = 8
+    var focusRingVisible = false
     var currentLayer: DesktopLayer          // which window-behavior is active now
     var onSelectLayer: (DesktopLayer) -> Void
     var onQuit: () -> Void
@@ -48,22 +52,19 @@ struct AlbumArtCloseButton: View {
             // It is part of this same `.topLeading` ZStack, so it pins to the
             // art's top-left corner rather than floating outside the square.
             closeButton
-                .padding(8)
+                .padding(closeButtonInset)
                 // Visible on hover over the art, and held visible while the
                 // popover is open.
-                .opacity(hovering || showPopover ? 1 : 0)
+                .opacity(alwaysShowCloseButton || hovering || showPopover ? 1 : 0)
                 .animation(VPTheme.fade, value: hovering)
                 .animation(VPTheme.fade, value: showPopover)
 
-            // ── The Window-behavior popover — anchored top-left, floats above art.
-            if showPopover {
-                popover
-                    // Offset so it appears just below / right of the X glyph
-                    // (X is at padding 8 + ~22pt circle), not on top of it.
-                    .offset(x: 8, y: 36)
-                    .zIndex(100)
-                    .transition(.scale(scale: 0.96, anchor: .topLeading).combined(with: .opacity))
-            }
+        }
+        .popover(isPresented: $showPopover, arrowEdge: .top) {
+            popover
+                .frame(width: 188)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(0)
         }
         // Hover tracking drives the X fade-in across the whole art surface.
         .onHover { hovering = $0 }
@@ -80,14 +81,9 @@ struct AlbumArtCloseButton: View {
                 .clipped()
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         } else {
-            // Tasteful placeholder: dark glass square + centered music.note.
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(VPTheme.scrimStrong)
-                .overlay(
-                    Image(systemName: "music.note")
-                        .font(.system(size: 28, weight: .regular))
-                        .foregroundColor(VPTheme.textMuted)
-                )
+                .overlay(SmallWidgetDefaultArtwork())
         }
     }
 
@@ -100,9 +96,16 @@ struct AlbumArtCloseButton: View {
             ZStack {
                 Circle()
                     .fill(Color.black.opacity(0.45))
-                    .frame(width: 22, height: 22)
+                    .frame(width: closeButtonSize, height: closeButtonSize)
+                    .overlay(
+                        Circle()
+                            .strokeBorder(
+                                focusRingVisible ? Color(red: 0.42, green: 0.50, blue: 0.95).opacity(0.95) : Color.clear,
+                                lineWidth: 2
+                            )
+                    )
                 Image(systemName: "xmark")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: closeButtonSize * 0.43, weight: .bold))
                     .foregroundColor(Color.white.opacity(0.9))
             }
             .contentShape(Circle())
@@ -113,68 +116,61 @@ struct AlbumArtCloseButton: View {
     // MARK: - Window-behavior popover
 
     private var popover: some View {
-        ZStack(alignment: .topLeading) {
-            // Invisible full-bleed catcher: tapping outside the menu (but within
-            // this view) dismisses the popover. Parent also handles outside-click.
-            Color.clear
-                .frame(width: 4000, height: 4000)
-                .contentShape(Rectangle())
-                .offset(x: -2000, y: -2000)
-                .onTapGesture { dismiss() }
+        GlassPanel(cornerRadius: VPTheme.radius) {
+            VStack(alignment: .leading, spacing: 2) {
+                // Section header — non-interactive, dimmed.
+                Text("Window behavior")
+                    .font(VPTheme.caption())
+                    .foregroundColor(PopoverMenuPalette.muted)
+                    .padding(.horizontal, 10)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
 
-            GlassPanel(cornerRadius: VPTheme.radius) {
-                VStack(alignment: .leading, spacing: 2) {
-                    // Section header — non-interactive, dimmed.
-                    Text("Window behavior")
-                        .font(VPTheme.caption())
-                        .foregroundColor(VPTheme.textMuted)
-                        .padding(.horizontal, 10)
-                        .padding(.top, 8)
-                        .padding(.bottom, 4)
-
-                    menuRow(
-                        title: DesktopLayer.front.behaviorLabel,  // "Above all windows"
-                        checked: currentLayer == .front
-                    ) {
-                        onSelectLayer(.front)
-                        dismiss()
-                    }
-
-                    menuRow(
-                        title: DesktopLayer.back.behaviorLabel,   // "Below all windows"
-                        checked: currentLayer == .back
-                    ) {
-                        onSelectLayer(.back)
-                        dismiss()
-                    }
-
-                    Divider()
-                        .overlay(VPTheme.glassStroke)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-
-                    menuRow(title: "Quit", checked: false) {
-                        onQuit()
-                    }
+                menuRow(
+                    title: DesktopLayer.front.behaviorLabel,  // "Above all windows"
+                    checked: currentLayer == .front
+                ) {
+                    onSelectLayer(.front)
+                    dismiss()
                 }
-                .padding(.bottom, 6)
-                .frame(width: 188, alignment: .leading)
+
+                menuRow(
+                    title: DesktopLayer.back.behaviorLabel,   // "Below all windows"
+                    checked: currentLayer == .back
+                ) {
+                    onSelectLayer(.back)
+                    dismiss()
+                }
+
+                Divider()
+                    .overlay(PopoverMenuPalette.divider)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+
+                menuRow(title: "Quit", checked: false) {
+                    onQuit()
+                }
             }
-            // Top-lit inner bevel to match the glass depth cue.
-            .overlay(
-                RoundedRectangle(cornerRadius: VPTheme.radius, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.35), Color.black.opacity(0.25)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        ),
-                        lineWidth: 1
-                    )
-            )
-            .shadow(color: Color.black.opacity(0.45), radius: 18, x: 0, y: 6)
-            .fixedSize()
+            .padding(.bottom, 6)
+            .frame(width: 188, alignment: .leading)
         }
+        .background(
+            RoundedRectangle(cornerRadius: VPTheme.radius, style: .continuous)
+                .fill(Color.white.opacity(0.80))
+        )
+        // Top-lit inner bevel to match the glass depth cue.
+        .overlay(
+            RoundedRectangle(cornerRadius: VPTheme.radius, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.35), Color.black.opacity(0.25)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 1
+                )
+        )
+        .shadow(color: Color.black.opacity(0.45), radius: 18, x: 0, y: 6)
     }
 
     // MARK: - Menu row
@@ -208,14 +204,14 @@ private struct MenuRow: View {
                     if checked {
                         Image(systemName: "checkmark")
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(VPTheme.textPrimary)
+                            .foregroundColor(PopoverMenuPalette.ink)
                     }
                 }
                 .frame(width: 14, alignment: .center)
 
                 Text(title)
                     .font(.system(size: 13, weight: .regular))
-                    .foregroundColor(VPTheme.textPrimary)
+                    .foregroundColor(PopoverMenuPalette.ink)
 
                 Spacer(minLength: 0)
             }
@@ -224,7 +220,7 @@ private struct MenuRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: VPTheme.radiusSmall, style: .continuous)
-                    .fill(hovering ? Color.white.opacity(0.06) : Color.clear)
+                    .fill(hovering ? PopoverMenuPalette.hoverFill : Color.clear)
             )
             .contentShape(Rectangle())
         }
@@ -232,4 +228,11 @@ private struct MenuRow: View {
         .padding(.horizontal, 6)
         .onHover { hovering = $0 }
     }
+}
+
+private enum PopoverMenuPalette {
+    static let ink = Color.black.opacity(0.86)
+    static let muted = Color.black.opacity(0.46)
+    static let divider = Color.black.opacity(0.12)
+    static let hoverFill = Color.black.opacity(0.07)
 }
