@@ -366,3 +366,40 @@ Dismiss on outside-click / Esc with a quick `VPTheme.fade`.
   );
 }
 ```
+
+---
+
+# Large Widget Build (2026-06-28)
+
+## Visual extraction
+- Reference scale: `320 x 432` floating card on a full desktop screenshot.
+- Card radius: `12 pt`; same rounded family as Regular, larger vertical body.
+- Main artwork: centered `260 x 260`, top offset `31 pt`, radius `5 pt`.
+- X button: `15 pt` dark circle, card top-left inset `8 pt`, shown on hover / while interacting.
+- Three-dot settings: `18 pt` black circle, card top-right inset `9 pt`.
+- Typography: title `17 pt heavy`, subtitle `14 pt bold`, centered and white.
+- Playback controls: centered previous/play/next with 28pt spacing.
+- Progress: bottom row with 10pt bold time labels and 198pt capsule track.
+
+## Large CSS equivalent
+```css
+.large-widget {
+  width: 320px;
+  height: 432px;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 72% 6%, rgba(255,171,219,.28), transparent 48%),
+    linear-gradient(135deg, rgba(209,143,184,.82), rgba(150,89,145,.88));
+  backdrop-filter: blur(28px) saturate(145%);
+  box-shadow:
+    0 10px 18px rgba(0,0,0,.22),
+    inset 0 1px 1px rgba(255,255,255,.12);
+}
+
+.large-artwork {
+  width: 260px;
+  height: 260px;
+  margin-top: 31px;
+  border-radius: 5px;
+}
+```

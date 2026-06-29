@@ -51,6 +51,9 @@ final class NowPlayingService: ObservableObject {
     /// Called whenever a new track's artwork is ready, so settings can refresh
     /// the adaptive accent color.
     var onTrackChanged: ((Track) -> Void)?
+    /// Set by the BrowserBridge: routes transport commands to the active web
+    /// tab when the current track isn't a local file.
+    var externalControl: ((ExternalControlAction) -> Void)?
 
     private var queue: [URL] = []
     private var index: Int = 0
@@ -97,26 +100,40 @@ final class NowPlayingService: ObservableObject {
         isPlaying.toggle()
         if track.source == .localFile {
             isPlaying ? player?.play() : player?.pause()
+        } else {
+            externalControl?(.playpause)
         }
     }
 
     func next() {
-        guard !queue.isEmpty else { return }
-        index = (index + 1) % queue.count
-        playCurrent()
+        if track.source == .localFile {
+            guard !queue.isEmpty else { return }
+            index = (index + 1) % queue.count
+            playCurrent()
+        } else {
+            externalControl?(.next)
+        }
     }
 
     func previous() {
-        guard !queue.isEmpty else { return }
-        // Restart current track if >3s in, else go to previous.
-        if position > 3 { seek(to: 0); return }
-        index = (index - 1 + queue.count) % queue.count
-        playCurrent()
+        if track.source == .localFile {
+            guard !queue.isEmpty else { return }
+            // Restart current track if >3s in, else go to previous.
+            if position > 3 { seek(to: 0); return }
+            index = (index - 1 + queue.count) % queue.count
+            playCurrent()
+        } else {
+            externalControl?(.previous)
+        }
     }
 
     func seek(to seconds: TimeInterval) {
         position = seconds
-        player?.seek(to: seconds)
+        if track.source == .localFile {
+            player?.seek(to: seconds)
+        } else {
+            externalControl?(.seek(seconds))
+        }
     }
 
     /// Wired by the Audio module's player tick.

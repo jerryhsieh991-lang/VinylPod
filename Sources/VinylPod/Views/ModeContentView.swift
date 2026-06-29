@@ -97,46 +97,14 @@ struct ModeContentView: View {
         )
     }
 
-    /// Large: album artwork (with the in-art X), full metadata + source chip,
-    /// progress, transport, and the three-dots settings menu top-right.
+    /// Large: the big centered album card from the latest reference screenshots.
     private var largeContent: some View {
-        ZStack(alignment: .topTrailing) {
-            VStack(spacing: 20) {
-                AlbumArtCloseButton(
-                    artwork: nowPlaying.track.artwork,
-                    currentLayer: settings.desktopLayer,
-                    onSelectLayer: selectLayer,
-                    onQuit: quit
-                )
-                .frame(width: 260, height: 260)
-
-                if nowPlaying.track.isEmpty {
-                    emptyHint
-                } else {
-                    VStack(spacing: 6) {
-                        trackHeader(titleSize: 20, artistSize: 14, alignment: .center)
-                        if !nowPlaying.track.album.isEmpty {
-                            Text(nowPlaying.track.album)
-                                .font(VPTheme.body(12))
-                                .foregroundStyle(VPTheme.textMuted)
-                                .lineLimit(1)
-                        }
-                        sourceChip
-                            .padding(.top, 4)
-                    }
-
-                    if settings.showProgress { ProgressBarView() }
-                    TransportControls(playSize: 60)
-                        .padding(.top, 4)
-                }
-            }
-            .padding(28)
-            .frame(maxWidth: 380)
-            .glassBackground(cornerRadius: VPTheme.radiusLarge)
-
-            settingsButton.padding(16)
-        }
-        .padding(24)
+        LargeGlassWidget(
+            currentLayer: settings.desktopLayer,
+            onSelectLayer: selectLayer,
+            onSelectSize: selectSize,
+            onQuit: quit
+        )
     }
 
     // MARK: - Widget chrome handlers

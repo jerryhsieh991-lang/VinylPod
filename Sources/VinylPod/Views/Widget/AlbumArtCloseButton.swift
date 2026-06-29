@@ -19,6 +19,7 @@ struct AlbumArtCloseButton: View {
     var closeButtonSize: CGFloat = 22
     var closeButtonInset: CGFloat = 8
     var focusRingVisible = false
+    var showsArtworkLayer = true
     var currentLayer: DesktopLayer          // which window-behavior is active now
     var onSelectLayer: (DesktopLayer) -> Void
     var onQuit: () -> Void
@@ -74,7 +75,10 @@ struct AlbumArtCloseButton: View {
 
     @ViewBuilder
     private var artworkLayer: some View {
-        if let artwork {
+        if !showsArtworkLayer {
+            Color.clear
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        } else if let artwork {
             Image(nsImage: artwork)
                 .resizable()
                 .scaledToFill()

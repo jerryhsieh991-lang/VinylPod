@@ -43,6 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var metadata: MetadataReader?
     private var colors: ArtworkColorExtractor?
     private var windowManager: WindowManager?
+    private var browserBridge: BrowserBridge?
 
     /// Local key-event monitor for ⌘1–⌘4. Retained so we can remove it on quit.
     private var keyMonitor: Any?
@@ -97,6 +98,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Show the persisted window mode (defaults to .normal).
         wm.show(env.settings.windowMode)
+
+        // --- Browser bridge: receive now-playing from the Chrome extension ----
+        // Starts a loopback WebSocket server on ws://127.0.0.1:8787. The
+        // "VinylPod Connect" extension pushes web now-playing here, and we route
+        // transport commands back to the active tab when the source isn't local.
+        let bridge = BrowserBridge(nowPlaying: env.nowPlaying)
+        self.browserBridge = bridge
+        env.nowPlaying.externalControl = { [weak bridge] action in bridge?.send(action) }
+        bridge.start()
 
         // --- Install ⌘1–⌘4 keyboard shortcuts --------------------------------
         installModeShortcuts()
