@@ -43,6 +43,8 @@ function publish() {
     chrome.storage.session.set({ nowPlaying: payload || null });
   } catch (e) { /* storage.session may be unavailable in some channels */ }
   wsSend({ type: "nowplaying", payload: payload || null });
+  // Lazily bring up the native-app bridge only when there's something to deliver.
+  wsEnsure();
   return payload;
 }
 
@@ -125,22 +127,44 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   if (tabState.delete(tabId)) publish();
 });
 
-// ---- Native-app WebSocket bridge (best effort, auto-reconnect) -------------
+// ---- Native-app WebSocket bridge (LAZY + quiet when the app is closed) ------
+//
+// The VinylPod app's bridge (ws://127.0.0.1:8787) is OPTIONAL — it only exists
+// while the app is running. A browser logs an uncatchable "connection failed"
+// error for every refused WebSocket attempt, so to keep the console quiet we:
+//   • never connect at startup,
+//   • only attempt when there's actually a now-playing track to deliver,
+//   • stop retrying entirely once nothing is playing,
+//   • back off slowly (5s → 60s) instead of hammering.
+// Net effect: with the app closed and nothing playing, ZERO connection errors;
+// while music plays with the app closed, at most an occasional line.
 let ws = null;
 let wsRetry = 0;
 let wsTimer = null;
 
-function wsConnect() {
+function hasDeliverableTrack() {
+  for (const rec of tabState.values()) if (rec && rec.payload) return true;
+  return false;
+}
+
+// Connect only if we have data AND aren't already connected/connecting/scheduled.
+function wsEnsure() {
   if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;
+  if (wsTimer) return;
+  if (!hasDeliverableTrack()) return;
+  wsConnect();
+}
+
+function wsConnect() {
   try {
     ws = new WebSocket(WS_URL);
   } catch (e) {
+    ws = null;
     scheduleReconnect();
     return;
   }
   ws.onopen = () => {
     wsRetry = 0;
-    // Send the current state immediately on connect.
     wsSend({ type: "nowplaying", payload: recomputeActive() });
   };
   ws.onmessage = (ev) => {
@@ -151,7 +175,7 @@ function wsConnect() {
       dispatchControl(data.action, data.value);
     }
   };
-  ws.onclose = () => scheduleReconnect();
+  ws.onclose = () => { ws = null; scheduleReconnect(); };
   ws.onerror = () => { try { ws.close(); } catch (_) {} };
 }
 
@@ -164,10 +188,10 @@ function wsSend(obj) {
 function scheduleReconnect() {
   ws = null;
   if (wsTimer) return;
-  // Exponential backoff capped at 30s; the native app may not be running.
-  const delay = Math.min(30000, 1000 * Math.pow(2, Math.min(wsRetry++, 5)));
-  wsTimer = setTimeout(() => { wsTimer = null; wsConnect(); }, delay);
+  // Stop retrying when there's nothing to deliver — this is what makes the
+  // console go quiet once playback stops or the tab closes.
+  if (!hasDeliverableTrack()) { wsRetry = 0; return; }
+  // Slow backoff: 5s, 10s, 20s, 40s, capped 60s.
+  const delay = Math.min(60000, 5000 * Math.pow(2, Math.min(wsRetry++, 4)));
+  wsTimer = setTimeout(() => { wsTimer = null; wsEnsure(); }, delay);
 }
-
-// Kick off the bridge. Harmless if nothing is listening on the port.
-wsConnect();
