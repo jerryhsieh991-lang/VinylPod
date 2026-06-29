@@ -200,19 +200,31 @@ struct SettingsMenuButton: View {
             KeyboardShortcutsWindowController.shared.show()
         }
         checkRow(title: "Appearance", checked: false, showsCheckColumn: true) {
-            print("[SettingsMenu] Appearance tapped")
+            // Cycle native appearance: system → dark → light → system.
+            // Affects native controls/menus (AppKit), not custom-drawn glass.
+            switch NSApp.appearance?.name {
+            case .some(.darkAqua):
+                NSApp.appearance = NSAppearance(named: .aqua)
+            case .some(.aqua):
+                NSApp.appearance = nil
+            default:
+                NSApp.appearance = NSAppearance(named: .darkAqua)
+            }
         }
 
         divider
 
         checkRow(title: "Rate us", checked: false, showsCheckColumn: true) {
-            print("[SettingsMenu] Rate us tapped")
+            // TODO: real App Store URL
+            if let url = URL(string: "https://apps.apple.com/") { NSWorkspace.shared.open(url) }
         }
         actionRow(title: "Share our app", glyph: "square.and.arrow.up") {
-            print("[SettingsMenu] Share our app tapped")
+            // share link copied to clipboard
+            let pb = NSPasteboard.general; pb.clearContents(); pb.setString("https://vinylpod.app", forType: .string)
         }
         checkRow(title: "About", checked: false, showsCheckColumn: true) {
-            print("[SettingsMenu] About tapped")
+            NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "VinylPod"])
+            NSApp.activate(ignoringOtherApps: true)
         }
 
         divider

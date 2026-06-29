@@ -18,9 +18,14 @@ struct VinylPodApp: App {
     // Hand the shared environment objects to the menu-bar content so it can
     // observe now-playing state and read settings.
     private let env = AppEnvironment.shared
+    // Observed so the "Show in Menu Bar" toggle can insert/remove the menu-bar item.
+    @ObservedObject private var settings = AppEnvironment.shared.settings
 
     var body: some Scene {
-        MenuBarExtra {
+        // `isInserted` binds the menu-bar item's presence to the setting. (If it's
+        // hidden, SettingsEffects forces the Dock icon on so there's still an
+        // entry point.)
+        MenuBarExtra(isInserted: $settings.showInMenuBar) {
             MenuBarContentView()
                 .environmentObject(env.nowPlaying)
                 .environmentObject(env.settings)
@@ -45,6 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowManager: WindowManager?
     private var browserBridge: BrowserBridge?
     private var hotKeys: HotKeyManager?
+    private var settingsEffects: SettingsEffects?
 
     /// Local key-event monitor for ⌘1–⌘4. Retained so we can remove it on quit.
     private var keyMonitor: Any?
@@ -120,6 +126,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             hotKeys?.reload(from: AppEnvironment.shared.shortcuts)
         }
         hotKeys.reload(from: env.shortcuts)
+
+        // --- Apply app-level settings side effects (Launch at Login, Dock icon,
+        //     Dock artwork, cover-art wallpaper) and keep them in sync ----------
+        let effects = SettingsEffects(settings: env.settings, nowPlaying: env.nowPlaying)
+        self.settingsEffects = effects
+        effects.start()
 
         // --- "Open with" / CLI support ---------------------------------------
         // Any audio file paths passed as launch arguments are played at startup,
