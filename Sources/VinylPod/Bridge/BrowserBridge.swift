@@ -102,6 +102,10 @@ final class BrowserBridge {
         loadArtwork(p.artwork) { [weak self] image in
             guard let self else { return }
             Task { @MainActor in
+                // "Music Player Source" filter: only surface the source the user
+                // selected in settings (Apple Music / Spotify / Safari Music=browser).
+                // A locally-played file is never affected (it doesn't come through here).
+                guard source == AppEnvironment.shared.settings.musicSource else { return }
                 let track = Track(title: title, artist: artist, album: album,
                                   artwork: image, duration: duration,
                                   source: source, url: nil)
