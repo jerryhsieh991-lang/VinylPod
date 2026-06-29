@@ -87,4 +87,22 @@
   } catch (err) {
     // chrome.runtime unavailable — nothing to relay.
   }
+
+  // ---------------------------------------------------------------------------
+  // Inject the MAIN-world reader as a page <script>. The manifest registers
+  // mediasession-main.js with world:"MAIN", but SAFARI ignores that key, so on
+  // Safari the reader never runs and universal capture is dead. Injecting it
+  // here runs it in the page's own context on BOTH browsers. It self-guards
+  // against double-init (window.__vinylpodMainInstalled), so on Chrome — where
+  // world:"MAIN" already ran it — this injection is a harmless no-op.
+  // ---------------------------------------------------------------------------
+  try {
+    var s = document.createElement("script");
+    s.src = chrome.runtime.getURL("mediasession-main.js");
+    s.async = false;
+    s.onload = function () { s.remove(); };
+    (document.head || document.documentElement).appendChild(s);
+  } catch (err) {
+    // getURL/CSP blocked — named-site scrapers (and world:MAIN on Chrome) still cover capture.
+  }
 })();

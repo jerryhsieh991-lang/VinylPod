@@ -56,20 +56,25 @@ function publish() {
 function boostArtworkURL(url) {
   if (!url || typeof url !== "string") return url;
   try {
-    // Spotify: size is encoded in the image id (4851=64px, 1e02=300px) -> b273=640px.
+    // Spotify: size encoded in the image id -> b273 = 640px (the CDN's max).
     if (url.indexOf("i.scdn.co") !== -1) {
       return url.replace(/ab67616d[0-9a-f]{8}/, "ab67616d0000b273");
     }
-    // Apple Music / mzstatic: rewrite the WxH segment (and {w}x{h} template) -> 1000px.
+    // Apple Music / mzstatic: rewrite the WxH segment (and {w}x{h} template) -> 1200px.
     if (url.indexOf("mzstatic.com") !== -1) {
       return url
-        .replace(/\{w\}x\{h\}/i, "1000x1000")
+        .replace(/\{w\}x\{h\}/i, "1200x1200")
         .replace(/\/\d+x\d+((?:bb|cc|sr|fn|bf|[a-z]{1,2})?)\.(jpe?g|png|webp)/i,
-                 "/1000x1000$1.$2");
+                 "/1200x1200$1.$2");
     }
-    // Google image CDN (YouTube Music, etc.): "=wW-hH" / "=sN" -> 544px.
+    // Google image CDN (YouTube Music, etc.): "=wW-hH" / "=sN" -> 1200px.
     if (url.indexOf("googleusercontent.com") !== -1 || url.indexOf("ggpht.com") !== -1) {
-      return url.replace(/=w\d+-h\d+/, "=w544-h544").replace(/=s\d+/, "=s544");
+      return url.replace(/=w\d+-h\d+/, "=w1200-h1200").replace(/=s\d+/, "=s1200");
+    }
+    // YouTube thumbnails (i.ytimg.com): bump low variants to sddefault (640×480,
+    // always present — maxresdefault 404s on non-HD videos, so don't risk it).
+    if (url.indexOf("ytimg.com") !== -1) {
+      return url.replace(/\/(?:hq|mq|sd)?default\.jpg/, "/sddefault.jpg");
     }
   } catch (e) { /* fall through to original */ }
   return url;
@@ -226,7 +231,22 @@ function scheduleReconnect() {
   // Stop retrying when there's nothing to deliver — this is what makes the
   // console go quiet once playback stops or the tab closes.
   if (!hasDeliverableTrack()) { wsRetry = 0; return; }
-  // Slow backoff: 5s, 10s, 20s, 40s, capped 60s.
-  const delay = Math.min(60000, 5000 * Math.pow(2, Math.min(wsRetry++, 4)));
+  // Snappy backoff: 1.5s, 3s, 6s, 12s, capped 30s — when the app IS running a
+  // dropped socket recovers in ~1–2s instead of waiting up to a minute.
+  const delay = Math.min(30000, 1500 * Math.pow(2, Math.min(wsRetry++, 4)));
   wsTimer = setTimeout(() => { wsTimer = null; wsEnsure(); }, delay);
 }
+
+// ---- Heartbeat: survive service-worker suspension (esp. Safari) -------------
+// MV3 service workers get suspended when idle — Safari especially aggressively —
+// silently dropping the WebSocket to the app. A periodic alarm wakes the worker
+// and re-ensures the connection whenever there's still a track to deliver, so
+// the bridge re-establishes itself instead of staying dead until the next
+// now-playing message. No effect when nothing is playing (keeps app-closed
+// state error-free).
+try {
+  chrome.alarms.create("vinylpod:heartbeat", { periodInMinutes: 0.5 });
+  chrome.alarms.onAlarm.addListener((a) => {
+    if (a.name === "vinylpod:heartbeat") wsEnsure();
+  });
+} catch (e) { /* chrome.alarms unavailable in this channel */ }
