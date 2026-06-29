@@ -87,6 +87,10 @@
       var imgEl = q("img", w);
       var artwork = "";
       if (imgEl) artwork = imgEl.currentSrc || imgEl.src || "";
+      // Quality: Spotify encodes size in the image id — the now-playing thumb is
+      // ...00004851 (64px). Rewrite to ...0000b273 (640px) for a sharp cover.
+      // (4851 = 64px, 1e02 = 300px, b273 = 640px.)
+      if (artwork) artwork = artwork.replace(/ab67616d[0-9a-f]{8}/, "ab67616d0000b273");
 
       // Times (these live outside the widget root, query from document)
       var currentTime = parseTime(txt(q('[data-testid="playback-position"]')));

@@ -66,12 +66,16 @@
     return parts.length > 1 ? parts[1] : "";
   }
 
-  // Artwork: the player-bar thumbnail src (small thumb is fine).
+  // Artwork: the player-bar thumbnail (~60px). Google's image CDN resizes via
+  // the "=wW-hH" / "=sN" URL token, so rewrite it to 544px for a sharp cover.
   function parseArtwork() {
     const img =
       qs(".ytmusic-player-bar img.ytmusic-player-bar") ||
       qs(".ytmusic-player-bar img");
-    return img && img.src ? img.src : "";
+    if (!img || !img.src) return "";
+    return img.src
+      .replace(/=w\d+-h\d+/, "=w544-h544")
+      .replace(/=s\d+/, "=s544");
   }
 
   // Parse "m:ss" / "h:mm:ss" into seconds; NaN-safe → 0.
