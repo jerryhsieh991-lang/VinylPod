@@ -59,33 +59,13 @@ struct SmallGlassWidget: View {
     }
 
     private var glassContainer: some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
-            .fill(
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.78, green: 0.56, blue: 0.67).opacity(0.74),
-                        Color(red: 0.58, green: 0.40, blue: 0.51).opacity(0.66)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-            .overlay(
-                RadialGradient(
-                    colors: [
-                        Color(red: 0.94, green: 0.64, blue: 0.81).opacity(0.32),
-                        Color.clear
-                    ],
-                    center: UnitPoint(x: 0.18, y: 0.08),
-                    startRadius: 6,
-                    endRadius: 118
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.14), lineWidth: 0.7)
-            )
+        AdaptiveWidgetGlassBackground(
+            cornerRadius: 18,
+            bottomShadeHeight: 42,
+            accentStrength: 0.24,
+            neutralOpacity: 0.30,
+            strokeOpacity: 0.16
+        )
     }
 
     private var bottomStrip: some View {
@@ -233,39 +213,13 @@ struct MediumGlassWidget: View {
     }
 
     private var glassContainer: some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
-            .fill(
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.82, green: 0.58, blue: 0.73).opacity(0.82),
-                        Color(red: 0.62, green: 0.39, blue: 0.57).opacity(0.74)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-            .overlay(
-                RadialGradient(
-                    colors: [
-                        Color(red: 0.98, green: 0.70, blue: 0.88).opacity(0.34),
-                        Color.clear
-                    ],
-                    center: UnitPoint(x: 0.22, y: 0.02),
-                    startRadius: 4,
-                    endRadius: 180
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            )
-            .overlay(
-                Rectangle()
-                    .fill(Color.black.opacity(0.16))
-                    .frame(height: 35),
-                alignment: .bottom
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.16), lineWidth: 0.8)
-            )
+        AdaptiveWidgetGlassBackground(
+            cornerRadius: 18,
+            bottomShadeHeight: 35,
+            accentStrength: 0.24,
+            neutralOpacity: 0.32,
+            strokeOpacity: 0.18
+        )
     }
 
     private var primaryLine: String {
@@ -340,66 +294,56 @@ struct MediumGlassWidget: View {
     }
 }
 
-/// Built-in lavender artwork used when no real track art exists. The reference
-/// stopped state still shows the pink tree cover, so empty state cannot fall
-/// back to a generic music note.
+/// Shared uploaded ice-mountain artwork used when no real track art exists.
+enum DefaultArtworkAsset {
+    static let image: NSImage? = {
+        // Bundled resource only — no hardcoded absolute path (it leaked a dev
+        // username into the binary and masked any bundling regression).
+        Bundle.module.url(
+            forResource: "majestic-ice-mountain-stockcake",
+            withExtension: "jpg"
+        ).flatMap { NSImage(contentsOf: $0) }
+    }()
+}
+
+/// Default artwork used when no real track art exists. This uses the uploaded
+/// ice mountain image directly rather than recreating a procedural image.
 struct SmallWidgetDefaultArtwork: View {
     var body: some View {
-        ZStack {
+        Group {
+            if let image = DefaultArtworkAsset.image {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                IceArtworkFallback()
+            }
+        }
+        .overlay(
             LinearGradient(
                 colors: [
-                    Color(red: 0.94, green: 0.57, blue: 0.77),
-                    Color(red: 0.75, green: 0.45, blue: 0.66),
-                    Color(red: 0.28, green: 0.43, blue: 0.53)
+                    Color.white.opacity(0.12),
+                    Color.clear,
+                    Color.black.opacity(0.10)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-
-            LinearGradient(
-                colors: [Color.white.opacity(0.22), Color.clear, Color.black.opacity(0.16)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-
-            Canvas { ctx, size in
-                let island = CGRect(
-                    x: size.width * 0.20,
-                    y: size.height * 0.66,
-                    width: size.width * 0.64,
-                    height: size.height * 0.16
-                )
-                ctx.fill(Path(ellipseIn: island), with: .color(Color(red: 0.24, green: 0.15, blue: 0.28).opacity(0.54)))
-
-                var trunk = Path()
-                let base = CGPoint(x: size.width * 0.52, y: size.height * 0.70)
-                let top = CGPoint(x: size.width * 0.50, y: size.height * 0.35)
-                trunk.move(to: base)
-                trunk.addQuadCurve(to: top, control: CGPoint(x: size.width * 0.43, y: size.height * 0.54))
-                ctx.stroke(trunk, with: .color(Color.white.opacity(0.42)), lineWidth: max(1.8, size.width * 0.03))
-
-                let center = CGPoint(x: size.width * 0.50, y: size.height * 0.33)
-                for i in 0..<42 {
-                    let angle = Double(i) * 2.399
-                    let radius = CGFloat(0.10 + 0.21 * abs(sin(Double(i) * 1.37))) * size.width
-                    let x = center.x + CGFloat(cos(angle)) * radius * 0.78
-                    let y = center.y + CGFloat(sin(angle)) * radius * 0.58
-                    let dot = CGFloat(3 + (i % 5)) * size.width / 98
-                    let color = i.isMultiple(of: 3)
-                        ? Color(red: 0.98, green: 0.64, blue: 0.84)
-                        : Color(red: 0.83, green: 0.36, blue: 0.66)
-                    ctx.fill(
-                        Path(ellipseIn: CGRect(x: x, y: y, width: dot, height: dot)),
-                        with: .color(color.opacity(0.72))
-                    )
-                }
-            }
-
-            Rectangle()
-                .fill(Color.white.opacity(0.18))
-                .frame(height: 1)
-                .offset(y: 24)
-        }
+        )
         .clipped()
+    }
+}
+
+private struct IceArtworkFallback: View {
+    var body: some View {
+        LinearGradient(
+            colors: [
+                Color(red: 0.06, green: 0.46, blue: 0.86),
+                Color(red: 0.42, green: 0.88, blue: 0.96),
+                Color(red: 0.92, green: 0.98, blue: 1.00)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 }

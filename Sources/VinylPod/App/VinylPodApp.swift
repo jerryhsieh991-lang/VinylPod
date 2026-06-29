@@ -81,24 +81,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             env.nowPlaying.reportFinished()
         }
 
-        // When a new track's artwork is ready, refresh the adaptive accent.
+        // When a new track's artwork is ready, refresh the full liquid-glass
+        // palette. Snapshot to Sendable Data first so no non-Sendable NSImage
+        // crosses the detached task boundary.
         env.nowPlaying.onTrackChanged = { t in
-            if let art = t.artwork {
-                env.settings.setAccent(from: colors.dominantColor(from: art))
-            } else {
-                env.settings.setAccent(from: nil)
+            guard let snapshot = t.artwork?.tiffRepresentation else {
+                env.settings.setAlbumPalette(from: nil)
+                return
+            }
+            Task.detached(priority: .userInitiated) {
+                let palette = NSImage(data: snapshot)
+                    .flatMap { ArtworkColorExtractor.paletteOffMain(from: $0) }
+                await MainActor.run { env.settings.setAlbumPalette(from: palette) }
             }
         }
 
         // --- Build the WindowManager with a content factory that injects the
         //     shared environment objects into ModeContentView -------------------
-        let wm = WindowManager(settings: env.settings) { mode in
-            AnyView(
-                ModeContentView(mode: mode)
+        let wm = WindowManager(
+            settings: env.settings,
+            content: { mode in
+                AnyView(
+                    ModeContentView(mode: mode)
+                        .environmentObject(env.nowPlaying)
+                        .environmentObject(env.settings)
+                )
+            },
+            dynamicIslandContent: { onExpansionChange in
+                AnyView(
+                    DynamicIslandWidget(
+                        onExpansionChange: onExpansionChange,
+                        onSelectSize: { mode in
+                            env.settings.windowMode = mode
+                            WindowCoordinator.shared.manager?.apply(mode: mode)
+                        },
+                        onQuit: { NSApp.terminate(nil) }
+                    )
                     .environmentObject(env.nowPlaying)
                     .environmentObject(env.settings)
-            )
-        }
+                )
+            }
+        )
         self.windowManager = wm
         // Expose to the menu-bar views and the shortcut handler.
         WindowCoordinator.shared.manager = wm

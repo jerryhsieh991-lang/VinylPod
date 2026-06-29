@@ -1,0 +1,218 @@
+- generic [ref=e2]:
+  - banner [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - button "Guide" [ref=e9] [cursor=pointer]
+        - link "YouTube Home" [ref=e12] [cursor=pointer]:
+          - /url: /
+        - button "Skip navigation" [ref=e19] [cursor=pointer]:
+          - generic [ref=e20]: Skip navigation
+      - generic [ref=e24]:
+        - search [ref=e25]:
+          - generic [ref=e27]:
+            - combobox "Search" [expanded] [ref=e30]
+            - button "Search" [ref=e31] [cursor=pointer]
+        - generic [ref=e34]:
+          - button "Search with your voice" [ref=e36] [cursor=pointer]
+          - tooltip "tooltip"
+  - main [ref=e48]:
+    - generic [ref=e49]:
+      - generic [ref=e51]:
+        - complementary [ref=e58]:
+          - generic "YouTube Video Player" [ref=e61]:
+            - button "Play" [ref=e65] [cursor=pointer]:
+              - img
+            - button "Channel watermark" [ref=e68] [cursor=pointer]:
+              - img "Channel watermark" [ref=e69]
+            - generic [ref=e70]:
+              - generic [ref=e71] [cursor=pointer]:
+                - slider "Seek slider" [ref=e72]
+                - generic:
+                  - generic:
+                    - generic:
+                      - slider "Click or scroll the panel for the precise seeking."
+              - generic [ref=e91]:
+                - generic [ref=e92]:
+                  - button "Pause (k)" [ref=e93] [cursor=pointer]:
+                    - img
+                  - generic [ref=e94]:
+                    - button "Mute (m)" [ref=e96] [cursor=pointer]:
+                      - img
+                    - slider "Volume"
+                  - button "0 Minutes 0 Seconds of 0 Minutes 19 Seconds" [ref=e100] [cursor=pointer]: 0:00 / 0:19
+                  - button "Intro" [ref=e102] [cursor=pointer]:
+                    - generic "Intro" [ref=e103]
+                    - generic [ref=e104]:
+                      - img
+                - generic [ref=e105]:
+                  - generic [ref=e106]:
+                    - button "Autoplay is on" [ref=e107] [cursor=pointer]
+                    - button "Subtitles/closed captions unavailable" [pressed] [ref=e110] [cursor=pointer]:
+                      - generic [ref=e111]:
+                        - img
+                    - button "Settings" [ref=e112] [cursor=pointer]:
+                      - img
+                  - generic [ref=e113]:
+                    - button "Theater mode (t)" [ref=e114] [cursor=pointer]:
+                      - img
+                    - button "Full screen (f)" [ref=e115] [cursor=pointer]:
+                      - img
+        - generic [ref=e117]:
+          - generic [ref=e119]:
+            - heading "Me at the zoo" [level=1] [ref=e121]
+            - generic [ref=e122]:
+              - generic [ref=e123]:
+                - generic [ref=e124]:
+                  - link "jawed" [ref=e125] [cursor=pointer]:
+                    - /url: /@jawed
+                    - img "jawed" [ref=e127]
+                  - generic [ref=e128]:
+                    - generic [ref=e129]:
+                      - generic "jawed" [ref=e132]:
+                        - link "jawed" [ref=e133] [cursor=pointer]:
+                          - /url: /@jawed
+                      - img "Verified" [ref=e138]
+                    - generic "6.24 million subscribers" [ref=e140]: 6.24M subscribers
+                - button "Subscribe to jawed." [ref=e146] [cursor=pointer]:
+                  - generic [ref=e147]: Subscribe
+              - generic [ref=e154]:
+                - generic [ref=e155]:
+                  - generic [ref=e159]:
+                    - button "like this video along with 19,072,902 other people" [ref=e163] [cursor=pointer]:
+                      - generic [ref=e166]: 19M
+                    - button "Dislike this video" [ref=e173] [cursor=pointer]
+                  - button "Share" [ref=e181] [cursor=pointer]:
+                    - generic [ref=e184]: Share
+                - button "Save to playlist" [ref=e191] [cursor=pointer]:
+                  - generic [ref=e194]: Save
+                - button "More actions" [ref=e199] [cursor=pointer]
+            - generic [ref=e207] [cursor=pointer]:
+              - generic [ref=e208]:
+                - generic [ref=e210]:
+                  - text: 397M views 21 years ago
+                  - link "SAN DIEGO ZOO" [ref=e211]:
+                    - /url: /results?search_query=San+Diego+Zoo&sp=EiG4AQHCARtDaElKeVlCX1NaVlUyWUFSUi1JMUpqZjA4RjA%253D
+                - tooltip "tooltip"
+              - generic [ref=e212]:
+                - generic [ref=e213]:
+                  - generic [ref=e216]:
+                    - text: Microplastics are accumulating in human brains at an alarming rate
+                    - 'link "YouTube Channel Link: Microplastics are accumulating in human brains at an alarming rate" [ref=e219]':
+                      - /url: /watch?v=0PT5c1z3LL8
+                      - text: • Microplastics are accumulating in human br...
+                  - generic: …
+                - button "...more" [ref=e221]
+          - text: •
+      - generic [ref=e228]:
+        - generic [ref=e230] [cursor=pointer]:
+          - link [ref=e231]:
+            - /url: /watch?v=YsJfv_dHMJs
+            - generic [ref=e238]: 14:55
+          - generic [ref=e240]:
+            - generic [ref=e241]:
+              - heading "Woman Turns Gas Station Into a Battlefield" [level=3] [ref=e242]:
+                - link "Woman Turns Gas Station Into a Battlefield 14 minutes, 55 seconds" [ref=e243]:
+                  - /url: /watch?v=YsJfv_dHMJs
+                  - text: Woman Turns Gas Station Into a Battlefield
+              - generic [ref=e245]:
+                - group [ref=e246]:
+                  - generic [ref=e247]:
+                    - text: Midwest Safety
+                    - img [ref=e250]
+                - group [ref=e251]:
+                  - generic "8.1 million views" [ref=e253]: 8.1M
+                  - generic "1 month ago" [ref=e254]: 1mo ago
+            - button "More actions" [ref=e257]
+        - generic [ref=e264] [cursor=pointer]:
+          - link [ref=e265]:
+            - /url: /watch?v=A0X_irwZJQA
+            - generic [ref=e272]: 4:18
+          - generic [ref=e274]:
+            - generic [ref=e275]:
+              - heading "The B**b Job" [level=3] [ref=e276]:
+                - link "The B**b Job 4 minutes, 18 seconds" [ref=e277]:
+                  - /url: /watch?v=A0X_irwZJQA
+                  - text: The B**b Job
+              - generic [ref=e279]:
+                - group [ref=e280]:
+                  - generic [ref=e281]: Stevie Emerson
+                - group [ref=e282]:
+                  - generic "4.1 million views" [ref=e284]: 4.1M
+                  - generic "1 year ago" [ref=e285]: 1y ago
+            - button "More actions" [ref=e288]
+        - generic [ref=e295] [cursor=pointer]:
+          - link [ref=e296]:
+            - /url: /watch?v=IzhmhSdZ25o&pp=ugUEEgJlbg%3D%3D
+            - generic [ref=e303]: 19:26
+          - generic [ref=e305]:
+            - generic [ref=e306]:
+              - heading "Ryan's World Parents Finally Got What They Deserved.." [level=3] [ref=e307]:
+                - link "Ryan's World Parents Finally Got What They Deserved.. 19 minutes" [ref=e308]:
+                  - /url: /watch?v=IzhmhSdZ25o&pp=ugUEEgJlbg%3D%3D
+                  - text: Ryan's World Parents Finally Got What They Deserved..
+              - generic [ref=e310]:
+                - group [ref=e311]:
+                  - generic [ref=e312]:
+                    - text: Kowski
+                    - img [ref=e315]
+                - group [ref=e316]:
+                  - generic "5.6 million views" [ref=e318]: 5.6M
+                  - generic "3 months ago" [ref=e319]: 3mo ago
+            - button "More actions" [ref=e322]
+        - generic [ref=e329] [cursor=pointer]:
+          - link [ref=e330]:
+            - /url: /watch?v=1sE1MjFsGrI&pp=ugUEEgJlbg%3D%3D
+            - generic [ref=e337]: 18:56
+          - generic [ref=e339]:
+            - generic [ref=e340]:
+              - heading "How the cringiest YouTuber redeemed himself" [level=3] [ref=e341]:
+                - link "How the cringiest YouTuber redeemed himself 18 minutes" [ref=e342]:
+                  - /url: /watch?v=1sE1MjFsGrI&pp=ugUEEgJlbg%3D%3D
+                  - text: How the cringiest YouTuber redeemed himself
+              - generic [ref=e344]:
+                - group [ref=e345]:
+                  - generic [ref=e346]:
+                    - text: It's Blanko
+                    - img [ref=e349]
+                - group [ref=e350]:
+                  - generic "3.5 million views" [ref=e352]: 3.5M
+                  - generic "1 year ago" [ref=e353]: 1y ago
+            - button "More actions" [ref=e356]
+        - generic [ref=e363] [cursor=pointer]:
+          - link [ref=e364]:
+            - /url: /watch?v=yztTC6lnk-A&pp=ugUEEgJlbg%3D%3D
+            - generic [ref=e371]: 12:32
+          - generic [ref=e373]:
+            - generic [ref=e374]:
+              - heading "Funny Football Moments That Actually Happened 😂" [level=3] [ref=e375]:
+                - link "Funny Football Moments That Actually Happened 😂 12 minutes, 32 seconds" [ref=e376]:
+                  - /url: /watch?v=yztTC6lnk-A&pp=ugUEEgJlbg%3D%3D
+                  - text: Funny Football Moments That Actually Happened 😂
+              - generic [ref=e378]:
+                - group [ref=e379]:
+                  - generic [ref=e380]:
+                    - text: Fazzer HD
+                    - img [ref=e383]
+                - group [ref=e384]:
+                  - generic "1.3 million views" [ref=e386]: 1.3M
+                  - generic "4 months ago" [ref=e387]: 4mo ago
+            - button "More actions" [ref=e390]
+        - generic [ref=e397] [cursor=pointer]:
+          - link [ref=e398]:
+            - /url: /watch?v=iWK_4CtZaoA
+            - generic [ref=e405]: 5:58
+          - generic [ref=e407]:
+            - generic [ref=e408]:
+              - 'heading "Comparison: How Many ___ To Kill You?" [level=3] [ref=e409]':
+                - 'link "Comparison: How Many ___ To Kill You? 5 minutes, 58 seconds" [ref=e410]':
+                  - /url: /watch?v=iWK_4CtZaoA
+                  - text: "Comparison: How Many ___ To Kill You?"
+              - generic [ref=e412]:
+                - group [ref=e413]:
+                  - generic [ref=e414]:
+                    - text: WatchData
+                    - img [ref=e417]
+                - group [ref=e418]:
+                  - generic "273 thousand views" [ref=e420]: 273K
+                  - generic "3 months ago" [ref=e421]: 3mo ago
+            - button "More actions" [ref=e424]

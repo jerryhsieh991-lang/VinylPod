@@ -29,11 +29,11 @@ struct LargeGlassWidget: View {
                 .zIndex(2)
 
             VStack(spacing: 0) {
-                Spacer().frame(height: 302)
+                Spacer().frame(height: 292)
                 titleStack
-                Spacer().frame(height: 20)
+                Spacer().frame(height: 16)
                 transportControls
-                Spacer().frame(height: 12)
+                Spacer().frame(height: 6)
                 if settings.showProgress {
                     progressStrip
                         .padding(.horizontal, 22)

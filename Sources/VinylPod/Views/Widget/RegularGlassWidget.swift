@@ -18,6 +18,15 @@ struct RegularGlassWidget: View {
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
+            AdaptiveWidgetGlassBackground(
+                cornerRadius: cornerRadius,
+                bottomShadeHeight: 86,
+                accentStrength: 0.24,
+                neutralOpacity: 0.30,
+                strokeOpacity: 0.16
+            )
+            .zIndex(0)
+
             AlbumArtCloseButton(
                 artwork: nowPlaying.track.artwork,
                 cornerRadius: cornerRadius,

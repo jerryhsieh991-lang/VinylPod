@@ -32,14 +32,14 @@ struct SettingsMenuButton: View {
     @VPState private var triggerHovered = false
 
     // Layout constants for the dropdown panel.
-    private let menuWidth: CGFloat = 230
-    private let menuMaxHeight: CGFloat = 460
+    private let menuWidth: CGFloat = 242
+    private let menuMaxHeight: CGFloat = 760
     private let dropdownAnimation = Animation.timingCurve(0.16, 1.0, 0.30, 1.0, duration: 0.28)
-    private let menuInk = Color.black.opacity(0.86)
-    private let menuSecondaryInk = Color.black.opacity(0.48)
-    private let menuMutedInk = Color.black.opacity(0.34)
-    private let menuHoverFill = Color.black.opacity(0.07)
-    private let menuDividerInk = Color.black.opacity(0.12)
+    private let menuInk = Color.black.opacity(0.82)
+    private let menuSecondaryInk = Color.black.opacity(0.60)
+    private let menuMutedInk = Color.black.opacity(0.42)
+    private let menuHoverFill = Color.black.opacity(0.075)
+    private let menuDividerInk = Color.black.opacity(0.13)
 
     var body: some View {
         trigger
@@ -59,12 +59,12 @@ struct SettingsMenuButton: View {
             Image(systemName: "ellipsis")
                 .font(.system(size: glyphSize, weight: .semibold))
                 .foregroundColor(
-                    triggerForeground ?? (triggerHovered ? VPTheme.textPrimary : VPTheme.textSecondary)
+                    triggerForeground ?? Color.white.opacity(triggerHovered ? 1.0 : 0.92)
                 )
                 .frame(width: triggerSize, height: triggerSize)
                 .background(
                     Circle()
-                        .fill(triggerFill ?? (triggerHovered ? VPTheme.glassTint : Color.clear))
+                        .fill(triggerFill ?? Color.black.opacity(triggerHovered ? 0.58 : 0.48))
                 )
                 .overlay(
                     Circle().strokeBorder(triggerStroke ?? VPTheme.glassStroke, lineWidth: 1)
@@ -87,8 +87,25 @@ struct SettingsMenuButton: View {
             .frame(maxHeight: menuMaxHeight)
         }
         .background(
-            RoundedRectangle(cornerRadius: VPTheme.radius, style: .continuous)
-                .fill(Color.white.opacity(0.78))
+            ZStack {
+                VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
+                    .clipShape(RoundedRectangle(cornerRadius: VPTheme.radius, style: .continuous))
+                RoundedRectangle(cornerRadius: VPTheme.radius, style: .continuous)
+                    .fill(Color.white.opacity(0.82))
+                RoundedRectangle(cornerRadius: VPTheme.radius, style: .continuous)
+                    .fill(settings.albumPalette.vibrant.color.opacity(0.16))
+                    .blendMode(.multiply)
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(0.34),
+                        settings.albumPalette.muted.color.opacity(0.10),
+                        Color.black.opacity(0.045)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .clipShape(RoundedRectangle(cornerRadius: VPTheme.radius, style: .continuous))
+            }
         )
         // Inner top-lit bevel border (brighter top → darker bottom).
         .overlay(
@@ -96,8 +113,9 @@ struct SettingsMenuButton: View {
                 .strokeBorder(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.35),
-                            Color.black.opacity(0.25)
+                            Color.white.opacity(0.68),
+                            settings.albumPalette.vibrant.color.opacity(0.22),
+                            Color.black.opacity(0.16)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -105,7 +123,7 @@ struct SettingsMenuButton: View {
                     lineWidth: 1
                 )
         )
-        .shadow(color: Color.black.opacity(0.45), radius: 18, x: 0, y: 6)
+        .shadow(color: Color.black.opacity(0.28), radius: 22, x: 0, y: 10)
         .compositingGroup()
     }
 
@@ -149,7 +167,7 @@ struct SettingsMenuButton: View {
         divider
 
         // Toggles.
-        checkRow(title: "Dynamic notch", checked: settings.dynamicNotch) {
+        checkRow(title: "Dynamic island", checked: settings.dynamicNotch) {
             settings.dynamicNotch.toggle()
         }
         checkRow(title: "Show in Menu Bar", checked: settings.showInMenuBar) {
@@ -246,6 +264,7 @@ struct SettingsMenuButton: View {
             Text("You're a Pro")
                 .font(VPTheme.body(13))
                 .foregroundColor(menuSecondaryInk)
+                .shadow(color: .white.opacity(0.35), radius: 0.5, x: 0, y: 1)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 12)
@@ -261,6 +280,7 @@ struct SettingsMenuButton: View {
         Text(title)
             .font(VPTheme.caption())
             .foregroundColor(menuMutedInk)
+            .shadow(color: .white.opacity(0.30), radius: 0.5, x: 0, y: 1)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 12)
             .padding(.top, 8)
@@ -288,7 +308,7 @@ struct SettingsMenuButton: View {
                     if checked {
                         Image(systemName: "checkmark")
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(menuInk)
+                            .foregroundColor(settings.albumPalette.vibrant.color)
                     }
                 }
                 .frame(width: 16, alignment: .center)
@@ -297,6 +317,7 @@ struct SettingsMenuButton: View {
                 Text(title)
                     .font(VPTheme.body(13))
                     .foregroundColor(menuInk)
+                    .shadow(color: .white.opacity(0.35), radius: 0.5, x: 0, y: 1)
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 12)
@@ -323,6 +344,7 @@ struct SettingsMenuButton: View {
                 Text(title)
                     .font(VPTheme.body(13))
                     .foregroundColor(menuInk)
+                    .shadow(color: .white.opacity(0.35), radius: 0.5, x: 0, y: 1)
                 Spacer(minLength: 0)
                 Image(systemName: glyph)
                     .font(.system(size: 11, weight: .regular))

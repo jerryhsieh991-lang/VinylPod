@@ -7,7 +7,10 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "VinylPod",
-            path: "Sources/VinylPod"
+            path: "Sources/VinylPod",
+            resources: [
+                .process("Resources")
+            ]
         )
     ]
 )

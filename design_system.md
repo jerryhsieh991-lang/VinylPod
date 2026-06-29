@@ -471,9 +471,39 @@ Dismiss on outside-click / Esc with a quick `VPTheme.fade`.
 
 ## Floating widget adaptive glass pass
 - Difference observed against VinyIpod reference: the old VinylPod widgets used a fixed mauve/purple gradient; VinyIpod uses neutral frosted glass that changes subtly with album artwork.
-- New rule: floating widgets start from macOS `hudWindow` blur, then apply `settings.accentColor` as a soft-light wash around 22-24% opacity.
+- New rule: floating widgets start from macOS `hudWindow` blur, then apply `settings.albumPalette` as soft-light album refraction around 22-24% opacity.
 - Blue album art should produce blue-gray glass; monochrome album art should produce neutral gray glass; warm album art should produce cream/tan glass.
 - Avoid solid color fills: the desktop wallpaper must remain visible through the card.
+
+## Ai Structuer liquid-glass lock (2026-06-29)
+- Primary accent color: album-derived vibrant color; fallback `#5CCEF5` ice blue when artwork is missing.
+- Background mood: custom `Album-reactive liquid glass` over a calm image base.
+- Typography: Sans (modern), native Apple SF Pro-like system sans.
+- Default size on launch: keep persisted user choice; default code path remains `Small` unless preferences choose another size.
+- Panel shape: rounded glass cards for widgets, pill for dynamic island compact state.
+- Where on screen: free placement for normal widgets; top-center for dynamic island.
+
+## Dynamic color engine
+- Extractor: `ArtworkColorExtractor.paletteOffMain(from:)` uses CoreImage `CIAreaAverage` for dominant color.
+- Vibrant color: CoreImage renders a `52px` sample grid; pixels are saturation-weighted so colorful album regions drive controls/progress.
+- Muted color: the same sample grid weights lower-chroma pixels for frosted fill and glass body tone.
+- Shadow color: a darkened dominant color creates depth without adding a static black wash.
+- Animation: `AppSettings.setAlbumPalette(from:)` applies `VPTheme.liquid = easeInOut(1.05s)` so track changes feel like the glass is flowing into the new album mood.
+- SwiftUI application: `AdaptiveWidgetGlassBackground` and `DesktopWidgetCanvas` read `settings.albumPalette`; reusable modifier is `View.liquidAlbumGlass(...)`.
+- Visibility rule: album color must be obvious, not theoretical. Blue album art should make glass/background read blue, so the surface includes a normal-blended album color membrane before the frost layer. `softLight` alone is not enough over bright desktop content.
+
+---
+
+## Dynamic island and comparative polish pass
+- Dynamic island: independent top-center `NSPanel`, compact size `390x30`, expanded card size `430x700`, anchored to the main screen's top midpoint. The panel is non-draggable and resizes between compact/expanded states so transparent regions do not block clicks.
+- Settings menu label is `Dynamic island` and is wired to `settings.dynamicNotch`; toggling it creates/removes the top-center island panel.
+- Island visual language: smoky `hudWindow` blur, `Color.black.opacity(0.21-0.30)`, album-accent soft-light tint at roughly `16-18%`, white stroke at `22-24%`, and a top-center notch bump.
+- Island typography: native Apple SF Pro-like sans, title `32pt semibold`, artist/status `24pt bold`, compact pill title `16pt semibold`.
+- Settings visibility: default ellipsis trigger is now a dark circular control (`black 48-58%`) with white glyph (`92-100%`) so it remains visible on pink, gray, bright, or busy cover art.
+- Settings dropdown: width `242`, max height `760`, light adaptive glass for readability over bright desktops. Primary ink `black 82%`, secondary `black 60%`, muted headers `black 42%`, hover fill `black 7.5%`, dividers `black 13%`, checkmarks use album vibrant color. Do not use white text inside this popover.
+- Progress placement: large widget title/control/progress cluster is shifted upward by reducing the top spacer from `302` to `292`, title-control gap from `20` to `16`, and control-progress gap from `12` to `6`.
+- Idle artwork/background: when no song is playing, use the uploaded file `majestic-ice-mountain-stockcake.jpg` as a packaged SwiftPM resource. Do not recreate it procedurally unless the resource fails to load.
+- Liquid glass recommendation implemented: blur first, then neutral dark depth, then album/ice color soft-light refraction, then white specular streak and bottom inner shadow. This should feel like glass absorbing nearby color, not a flat purple overlay.
 
 ---
 

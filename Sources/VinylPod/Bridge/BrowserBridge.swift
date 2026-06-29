@@ -25,7 +25,7 @@ final class BrowserBridge {
 
     init(nowPlaying: NowPlayingService, port: UInt16 = 8787) {
         self.nowPlaying = nowPlaying
-        self.port = NWEndpoint.Port(rawValue: port)!
+        self.port = NWEndpoint.Port(rawValue: port) ?? 8787
     }
 
     // MARK: - Lifecycle
@@ -35,6 +35,7 @@ final class BrowserBridge {
             let params = NWParameters.tcp
             let ws = NWProtocolWebSocket.Options()
             ws.autoReplyPing = true
+            ws.maximumMessageSize = 256 * 1024   // H1: cap inbound frame size (DoS guard)
             params.defaultProtocolStack.applicationProtocols.insert(ws, at: 0)
             params.allowLocalEndpointReuse = true
             // Loopback only — never expose the bridge on the network.
@@ -58,6 +59,8 @@ final class BrowserBridge {
     // MARK: - Connections
 
     private func accept(_ conn: NWConnection) {
+        // H1: cap concurrent connections so an open-flood can't pile up unbounded.
+        if connections.count >= 6, let oldest = connections.first { remove(oldest) }
         conn.stateUpdateHandler = { [weak self] state in
             switch state {
             case .failed, .cancelled: self?.remove(conn)
@@ -86,10 +89,11 @@ final class BrowserBridge {
     // MARK: - Inbound: now-playing → NowPlayingService
 
     private func handle(_ data: Data) {
+        guard data.count <= 256 * 1024 else { return }   // H1: reject oversized frames
         guard let msg = try? JSONDecoder().decode(InMessage.self, from: data),
               msg.type == "nowplaying",
               let p = msg.payload,
-              let title = p.title, !title.isEmpty
+              let title = p.title, !title.isEmpty, title.count <= 2048
         else { return }   // ignore null/"gone" so we never clobber a local track
 
         let source = Self.mapSource(p.source)
@@ -130,24 +134,64 @@ final class BrowserBridge {
     /// renders it at full resolution — a low CFBundle/DPI point-size on the rep
     /// would otherwise make a high-res image render soft.
     private func loadArtwork(_ urlString: String?, completion: @escaping (NSImage?) -> Void) {
-        guard let s = urlString, !s.isEmpty, let url = URL(string: s) else {
-            completion(nil); return
-        }
+        guard let s = urlString, !s.isEmpty,
+              let url = URL(string: s), let scheme = url.scheme?.lowercased()
+        else { completion(nil); return }
+
+        // Cache read — `handle` hops onto `queue` before calling us, so this is
+        // safe to read here.
         if s == lastArtworkURL { completion(lastArtworkImage); return }
 
-        // Inline data: URL — decode synchronously, no network.
-        if s.hasPrefix("data:"), let data = try? Data(contentsOf: url) {
-            let image = Self.normalizedImage(from: data)
-            lastArtworkURL = s; lastArtworkImage = image
+        // C2: inline data: URI — decode the payload FROM THE STRING. Never use
+        // `Data(contentsOf:)`, which would dereference `file://`/other schemes
+        // (a payload-controlled local-file read on this unsandboxed app).
+        if scheme == "data" {
+            let image = Self.decodeDataURI(s).flatMap { Self.normalizedImage(from: $0) }
+            lastArtworkURL = s; lastArtworkImage = image     // on `queue`
             completion(image); return
         }
 
-        URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
-            let image = data.flatMap { Self.normalizedImage(from: $0) }
-            self?.lastArtworkURL = s
-            self?.lastArtworkImage = image
-            completion(image)
+        // C2 (SSRF): only fetch over http(s), and never to loopback / link-local
+        // / RFC-1918 hosts — the URL is attacker-controllable via the WS payload.
+        guard scheme == "http" || scheme == "https", Self.isPublicHost(url.host) else {
+            completion(nil); return
+        }
+
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 10                              // H1: no hung fetch
+        req.cachePolicy = .reloadIgnoringLocalCacheData
+        URLSession.shared.dataTask(with: req) { [weak self] data, _, _ in
+            // H1: cap the in-memory image so a huge response can't blow up RAM.
+            let ok = (data?.count ?? 0) <= 8 * 1024 * 1024
+            let image = ok ? data.flatMap { Self.normalizedImage(from: $0) } : nil
+            guard let self else { completion(image); return }
+            self.queue.async {                                // race fix: write on `queue`
+                self.lastArtworkURL = s
+                self.lastArtworkImage = image
+                completion(image)
+            }
         }.resume()
+    }
+
+    /// Decode a `data:[<mediatype>][;base64],<payload>` URI from the string
+    /// itself — string-split, never URL-load (so no `file://` dereference).
+    private static func decodeDataURI(_ s: String) -> Data? {
+        guard s.hasPrefix("data:"), let comma = s.firstIndex(of: ",") else { return nil }
+        let header = s[s.startIndex..<comma].lowercased()
+        let payload = String(s[s.index(after: comma)...])
+        if header.contains("base64") { return Data(base64Encoded: payload) }
+        return payload.removingPercentEncoding?.data(using: .utf8)
+    }
+
+    /// Blocks SSRF to loopback / link-local / private ranges before any fetch.
+    private static func isPublicHost(_ host: String?) -> Bool {
+        guard let h = host?.lowercased(), !h.isEmpty else { return false }
+        if h == "localhost" || h == "0.0.0.0" || h == "::1"
+            || h.hasSuffix(".local") || h.hasSuffix(".localhost") { return false }
+        if h.hasPrefix("127.") || h.hasPrefix("169.254.")
+            || h.hasPrefix("10.") || h.hasPrefix("192.168.") { return false }
+        if h.range(of: #"^172\.(1[6-9]|2\d|3[01])\."#, options: .regularExpression) != nil { return false }
+        return true
     }
 
     /// Build an NSImage whose `size` (points) equals its bitmap PIXEL size, so
