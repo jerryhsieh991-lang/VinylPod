@@ -98,7 +98,7 @@ final class WindowManager {
             // Above normal windows AND above other floating helpers. The status
             // window level sits above .floating, putting the widget on top.
             window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)))
-            window.collectionBehavior = [.canJoinAllSpaces, .stationary]
+            window.collectionBehavior = [.stationary, .ignoresCycle]
 
         case .back:
             // THE SUBTLE PART — "behind desktop icons".
@@ -110,9 +110,8 @@ final class WindowManager {
             // that level via CGWindowLevelForKey(.desktopWindow) rather than
             // hardcoding a magic number, so it tracks the OS.
             window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)))
-            // Stay present on every Space and don't move with Mission Control so
-            // it behaves like part of the desktop itself.
-            window.collectionBehavior = [.canJoinAllSpaces, .stationary]
+            // Stay pinned to this screen/Space, but do not join every Space.
+            window.collectionBehavior = [.stationary, .ignoresCycle]
         }
     }
 
@@ -168,7 +167,8 @@ final class WindowManager {
         panel.backgroundColor = .clear
         panel.titlebarAppearsTransparent = true
         panel.titleVisibility = .hidden
-        panel.isMovableByWindowBackground = true
+        panel.isMovableByWindowBackground = !isWidget
+        panel.isMovable = !isWidget
         panel.hidesOnDeactivate = false
         panel.isFloatingPanel = true
         // Non-activating panels shouldn't steal key/main from the user's apps.
@@ -176,10 +176,11 @@ final class WindowManager {
 
         if isWidget {
             // Full-screen decor: no shadow, transparent, accepts mouse so
-            // hover-reveal controls work. Spans all Spaces and stays put.
+            // hover-reveal controls work. It stays pinned to the chosen screen
+            // and intentionally does not join every Space.
             panel.hasShadow = false
             panel.ignoresMouseEvents = false
-            panel.collectionBehavior = [.canJoinAllSpaces, .stationary]
+            panel.collectionBehavior = [.stationary, .ignoresCycle]
         } else {
             // Small/Normal/Large: a floating rounded card with a drop shadow,
             // above normal windows since it's a now-playing companion.

@@ -1,0 +1,611 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 110;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4D65770F2FF2116C00E28A2E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D65770E2FF2116C00E28A2E /* AppDelegate.swift */; };
+		4D6577132FF2116C00E28A2E /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 4D6577112FF2116C00E28A2E /* Main.html */; };
+		4D6577152FF2116C00E28A2E /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 4D6577142FF2116C00E28A2E /* Icon.png */; };
+		4D6577172FF2116C00E28A2E /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 4D6577162FF2116C00E28A2E /* Style.css */; };
+		4D6577192FF2116C00E28A2E /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 4D6577182FF2116C00E28A2E /* Script.js */; };
+		4D65771B2FF2116C00E28A2E /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D65771A2FF2116C00E28A2E /* ViewController.swift */; };
+		4D65771E2FF2116C00E28A2E /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4D65771C2FF2116C00E28A2E /* Main.storyboard */; };
+		4D6577202FF2117100E28A2E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4D65771F2FF2117100E28A2E /* Assets.xcassets */; };
+		4D6577272FF2117100E28A2E /* VinylPodConnect Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4D6577262FF2117100E28A2E /* VinylPodConnect Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4D65772C2FF2117100E28A2E /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D65772B2FF2117100E28A2E /* SafariWebExtensionHandler.swift */; };
+		4D6577422FF2117200E28A2E /* extension_backend_features.json in Resources */ = {isa = PBXBuildFile; fileRef = 4D6577382FF2117200E28A2E /* extension_backend_features.json */; };
+		4D6577432FF2117200E28A2E /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 4D6577392FF2117200E28A2E /* README.md */; };
+		4D6577442FF2117200E28A2E /* sites in Resources */ = {isa = PBXBuildFile; fileRef = 4D65773A2FF2117200E28A2E /* sites */; };
+		4D6577452FF2117200E28A2E /* cs-common.js in Resources */ = {isa = PBXBuildFile; fileRef = 4D65773B2FF2117200E28A2E /* cs-common.js */; };
+		4D6577462FF2117200E28A2E /* icons in Resources */ = {isa = PBXBuildFile; fileRef = 4D65773C2FF2117200E28A2E /* icons */; };
+		4D6577472FF2117200E28A2E /* mediasession-main.js in Resources */ = {isa = PBXBuildFile; fileRef = 4D65773D2FF2117200E28A2E /* mediasession-main.js */; };
+		4D6577482FF2117200E28A2E /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 4D65773E2FF2117200E28A2E /* manifest.json */; };
+		4D6577492FF2117200E28A2E /* data_flow.md in Resources */ = {isa = PBXBuildFile; fileRef = 4D65773F2FF2117200E28A2E /* data_flow.md */; };
+		4D65774A2FF2117200E28A2E /* universal-relay.js in Resources */ = {isa = PBXBuildFile; fileRef = 4D6577402FF2117200E28A2E /* universal-relay.js */; };
+		4D65774B2FF2117200E28A2E /* service-worker.js in Resources */ = {isa = PBXBuildFile; fileRef = 4D6577412FF2117200E28A2E /* service-worker.js */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4D6577282FF2117100E28A2E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4D6577032FF2116C00E28A2E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4D6577252FF2117100E28A2E;
+			remoteInfo = "VinylPodConnect Extension";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		4D6577332FF2117100E28A2E /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			dstPath = "";
+			dstSubfolder = PlugIns;
+			files = (
+				4D6577272FF2117100E28A2E /* VinylPodConnect Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		4D65770B2FF2116C00E28A2E /* VinylPodConnect.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VinylPodConnect.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D65770E2FF2116C00E28A2E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		4D6577122FF2116C00E28A2E /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		4D6577142FF2116C00E28A2E /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		4D6577162FF2116C00E28A2E /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		4D6577182FF2116C00E28A2E /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		4D65771A2FF2116C00E28A2E /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		4D65771D2FF2116C00E28A2E /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		4D65771F2FF2117100E28A2E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		4D6577212FF2117100E28A2E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4D6577262FF2117100E28A2E /* VinylPodConnect Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "VinylPodConnect Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D65772B2FF2117100E28A2E /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		4D65772D2FF2117100E28A2E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4D6577382FF2117200E28A2E /* extension_backend_features.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = extension_backend_features.json; path = ../../../BrowserExtension/extension_backend_features.json; sourceTree = "<group>"; };
+		4D6577392FF2117200E28A2E /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../../../BrowserExtension/README.md; sourceTree = "<group>"; };
+		4D65773A2FF2117200E28A2E /* sites */ = {isa = PBXFileReference; lastKnownFileType = folder; name = sites; path = ../../../BrowserExtension/sites; sourceTree = "<group>"; };
+		4D65773B2FF2117200E28A2E /* cs-common.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "cs-common.js"; path = "../../../BrowserExtension/cs-common.js"; sourceTree = "<group>"; };
+		4D65773C2FF2117200E28A2E /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icons; path = ../../../BrowserExtension/icons; sourceTree = "<group>"; };
+		4D65773D2FF2117200E28A2E /* mediasession-main.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "mediasession-main.js"; path = "../../../BrowserExtension/mediasession-main.js"; sourceTree = "<group>"; };
+		4D65773E2FF2117200E28A2E /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../../BrowserExtension/manifest.json; sourceTree = "<group>"; };
+		4D65773F2FF2117200E28A2E /* data_flow.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = data_flow.md; path = ../../../BrowserExtension/data_flow.md; sourceTree = "<group>"; };
+		4D6577402FF2117200E28A2E /* universal-relay.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "universal-relay.js"; path = "../../../BrowserExtension/universal-relay.js"; sourceTree = "<group>"; };
+		4D6577412FF2117200E28A2E /* service-worker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = "service-worker.js"; path = "../../../BrowserExtension/service-worker.js"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4D6577082FF2116C00E28A2E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		4D6577232FF2117100E28A2E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4D6577022FF2116C00E28A2E = {
+			isa = PBXGroup;
+			children = (
+				4D65770D2FF2116C00E28A2E /* VinylPodConnect */,
+				4D65772A2FF2117100E28A2E /* VinylPodConnect Extension */,
+				4D65770C2FF2116C00E28A2E /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4D65770C2FF2116C00E28A2E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4D65770B2FF2116C00E28A2E /* VinylPodConnect.app */,
+				4D6577262FF2117100E28A2E /* VinylPodConnect Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4D65770D2FF2116C00E28A2E /* VinylPodConnect */ = {
+			isa = PBXGroup;
+			children = (
+				4D65770E2FF2116C00E28A2E /* AppDelegate.swift */,
+				4D65771A2FF2116C00E28A2E /* ViewController.swift */,
+				4D65771C2FF2116C00E28A2E /* Main.storyboard */,
+				4D65771F2FF2117100E28A2E /* Assets.xcassets */,
+				4D6577212FF2117100E28A2E /* Info.plist */,
+				4D6577102FF2116C00E28A2E /* Resources */,
+			);
+			path = VinylPodConnect;
+			sourceTree = "<group>";
+		};
+		4D6577102FF2116C00E28A2E /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				4D6577112FF2116C00E28A2E /* Main.html */,
+				4D6577142FF2116C00E28A2E /* Icon.png */,
+				4D6577162FF2116C00E28A2E /* Style.css */,
+				4D6577182FF2116C00E28A2E /* Script.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		4D65772A2FF2117100E28A2E /* VinylPodConnect Extension */ = {
+			isa = PBXGroup;
+			children = (
+				4D6577372FF2117200E28A2E /* Resources */,
+				4D65772B2FF2117100E28A2E /* SafariWebExtensionHandler.swift */,
+				4D65772D2FF2117100E28A2E /* Info.plist */,
+			);
+			path = "VinylPodConnect Extension";
+			sourceTree = "<group>";
+		};
+		4D6577372FF2117200E28A2E /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				4D6577382FF2117200E28A2E /* extension_backend_features.json */,
+				4D6577392FF2117200E28A2E /* README.md */,
+				4D65773A2FF2117200E28A2E /* sites */,
+				4D65773B2FF2117200E28A2E /* cs-common.js */,
+				4D65773C2FF2117200E28A2E /* icons */,
+				4D65773D2FF2117200E28A2E /* mediasession-main.js */,
+				4D65773E2FF2117200E28A2E /* manifest.json */,
+				4D65773F2FF2117200E28A2E /* data_flow.md */,
+				4D6577402FF2117200E28A2E /* universal-relay.js */,
+				4D6577412FF2117200E28A2E /* service-worker.js */,
+			);
+			name = Resources;
+			path = "VinylPodConnect Extension";
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4D65770A2FF2116C00E28A2E /* VinylPodConnect */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D6577342FF2117100E28A2E /* Build configuration list for PBXNativeTarget "VinylPodConnect" */;
+			buildPhases = (
+				4D6577072FF2116C00E28A2E /* Sources */,
+				4D6577082FF2116C00E28A2E /* Frameworks */,
+				4D6577092FF2116C00E28A2E /* Resources */,
+				4D6577332FF2117100E28A2E /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4D6577292FF2117100E28A2E /* PBXTargetDependency */,
+			);
+			name = VinylPodConnect;
+			productName = VinylPodConnect;
+			productReference = 4D65770B2FF2116C00E28A2E /* VinylPodConnect.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4D6577252FF2117100E28A2E /* VinylPodConnect Extension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D6577302FF2117100E28A2E /* Build configuration list for PBXNativeTarget "VinylPodConnect Extension" */;
+			buildPhases = (
+				4D6577222FF2117100E28A2E /* Sources */,
+				4D6577232FF2117100E28A2E /* Frameworks */,
+				4D6577242FF2117100E28A2E /* Resources */,
+			);
+			buildRules = (
+			);
+			name = "VinylPodConnect Extension";
+			productName = "VinylPodConnect Extension";
+			productReference = 4D6577262FF2117100E28A2E /* VinylPodConnect Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4D6577032FF2116C00E28A2E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+					4D65770A2FF2116C00E28A2E = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					4D6577252FF2117100E28A2E = {
+						CreatedOnToolsVersion = 27.0;
+					};
+				};
+			};
+			buildConfigurationList = 4D6577062FF2116C00E28A2E /* Build configuration list for PBXProject "VinylPodConnect" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4D6577022FF2116C00E28A2E;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4D65770C2FF2116C00E28A2E /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4D65770A2FF2116C00E28A2E /* VinylPodConnect */,
+				4D6577252FF2117100E28A2E /* VinylPodConnect Extension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4D6577092FF2116C00E28A2E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+				4D6577152FF2116C00E28A2E /* Icon.png in Resources */,
+				4D65771E2FF2116C00E28A2E /* Main.storyboard in Resources */,
+				4D6577192FF2116C00E28A2E /* Script.js in Resources */,
+				4D6577132FF2116C00E28A2E /* Main.html in Resources */,
+				4D6577202FF2117100E28A2E /* Assets.xcassets in Resources */,
+				4D6577172FF2116C00E28A2E /* Style.css in Resources */,
+			);
+		};
+		4D6577242FF2117100E28A2E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+				4D6577442FF2117200E28A2E /* sites in Resources */,
+				4D6577482FF2117200E28A2E /* manifest.json in Resources */,
+				4D6577432FF2117200E28A2E /* README.md in Resources */,
+				4D6577422FF2117200E28A2E /* extension_backend_features.json in Resources */,
+				4D6577492FF2117200E28A2E /* data_flow.md in Resources */,
+				4D6577462FF2117200E28A2E /* icons in Resources */,
+				4D65774B2FF2117200E28A2E /* service-worker.js in Resources */,
+				4D6577452FF2117200E28A2E /* cs-common.js in Resources */,
+				4D6577472FF2117200E28A2E /* mediasession-main.js in Resources */,
+				4D65774A2FF2117200E28A2E /* universal-relay.js in Resources */,
+			);
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4D6577072FF2116C00E28A2E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+				4D65771B2FF2116C00E28A2E /* ViewController.swift in Sources */,
+				4D65770F2FF2116C00E28A2E /* AppDelegate.swift in Sources */,
+			);
+		};
+		4D6577222FF2117100E28A2E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+				4D65772C2FF2117100E28A2E /* SafariWebExtensionHandler.swift in Sources */,
+			);
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4D6577292FF2117100E28A2E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4D6577252FF2117100E28A2E /* VinylPodConnect Extension */;
+			targetProxy = 4D6577282FF2117100E28A2E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		4D6577112FF2116C00E28A2E /* Main.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				4D6577122FF2116C00E28A2E /* Base */,
+			);
+			name = Main.html;
+			sourceTree = "<group>";
+		};
+		4D65771C2FF2116C00E28A2E /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				4D65771D2FF2116C00E28A2E /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		4D65772E2FF2117100E28A2E /* Debug configuration for PBXProject "VinylPodConnect" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		4D65772F2FF2117100E28A2E /* Release configuration for PBXProject "VinylPodConnect" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		4D6577312FF2117100E28A2E /* Debug configuration for PBXNativeTarget "VinylPodConnect Extension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "VinylPodConnect Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "VinylPodConnect Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.vinylpod.connect.Extension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		4D6577322FF2117100E28A2E /* Release configuration for PBXNativeTarget "VinylPodConnect Extension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "VinylPodConnect Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "VinylPodConnect Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.vinylpod.connect.Extension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		4D6577352FF2117100E28A2E /* Debug configuration for PBXNativeTarget "VinylPodConnect" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VinylPodConnect/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = VinylPodConnect;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.vinylpod.VinylPodConnect;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		4D6577362FF2117100E28A2E /* Release configuration for PBXNativeTarget "VinylPodConnect" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VinylPodConnect/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = VinylPodConnect;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.vinylpod.VinylPodConnect;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4D6577062FF2116C00E28A2E /* Build configuration list for PBXProject "VinylPodConnect" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D65772E2FF2117100E28A2E /* Debug configuration for PBXProject "VinylPodConnect" */,
+				4D65772F2FF2117100E28A2E /* Release configuration for PBXProject "VinylPodConnect" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		4D6577302FF2117100E28A2E /* Build configuration list for PBXNativeTarget "VinylPodConnect Extension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D6577312FF2117100E28A2E /* Debug configuration for PBXNativeTarget "VinylPodConnect Extension" */,
+				4D6577322FF2117100E28A2E /* Release configuration for PBXNativeTarget "VinylPodConnect Extension" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		4D6577342FF2117100E28A2E /* Build configuration list for PBXNativeTarget "VinylPodConnect" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D6577352FF2117100E28A2E /* Debug configuration for PBXNativeTarget "VinylPodConnect" */,
+				4D6577362FF2117100E28A2E /* Release configuration for PBXNativeTarget "VinylPodConnect" */,
+			);
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4D6577032FF2116C00E28A2E /* Project object */;
+	validationLevel = 1;
+}

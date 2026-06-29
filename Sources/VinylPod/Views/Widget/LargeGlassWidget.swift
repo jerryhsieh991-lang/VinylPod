@@ -24,6 +24,7 @@ struct LargeGlassWidget: View {
 
             artworkCard
                 .frame(width: artworkSize, height: artworkSize)
+                .frame(width: widgetSize.width, height: widgetSize.height, alignment: .top)
                 .offset(y: 31)
                 .zIndex(2)
 
