@@ -181,6 +181,7 @@ chrome.runtime.onInstalled.addListener(injectOpenTabs);
 let ws = null;
 let wsRetry = 0;
 let wsTimer = null;
+let wsAppSeen = false; // true once the app has accepted a connection this session
 
 function hasDeliverableTrack() {
   for (const rec of tabState.values()) if (rec && rec.payload) return true;
@@ -204,6 +205,7 @@ function wsConnect() {
     return;
   }
   ws.onopen = () => {
+    wsAppSeen = true;
     wsRetry = 0;
     wsSend({ type: "nowplaying", payload: recomputeActive() });
   };
@@ -231,9 +233,16 @@ function scheduleReconnect() {
   // Stop retrying when there's nothing to deliver — this is what makes the
   // console go quiet once playback stops or the tab closes.
   if (!hasDeliverableTrack()) { wsRetry = 0; return; }
-  // Snappy backoff: 1.5s, 3s, 6s, 12s, capped 30s — when the app IS running a
-  // dropped socket recovers in ~1–2s instead of waiting up to a minute.
-  const delay = Math.min(30000, 1500 * Math.pow(2, Math.min(wsRetry++, 4)));
+  const n = wsRetry++;
+  // Minimize the browser's UNCATCHABLE "connection refused" console line:
+  //   • App SEEN this session (socket just dropped) → reconnect FAST (1.5s→30s).
+  //   • App NEVER answered (probably not running) → long, quiet backoff
+  //     (10s→2min) so we don't keep logging refused attempts while it's off.
+  // The first successful open flips wsAppSeen → fast regime; it still recovers
+  // on its own within ≤2min once the app launches.
+  const delay = wsAppSeen
+    ? Math.min(30000,  1500  * Math.pow(2, Math.min(n, 4)))
+    : Math.min(120000, 10000 * Math.pow(2, Math.min(n, 4)));
   wsTimer = setTimeout(() => { wsTimer = null; wsEnsure(); }, delay);
 }
 
