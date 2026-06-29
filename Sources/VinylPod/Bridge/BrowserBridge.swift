@@ -121,17 +121,38 @@ final class BrowserBridge {
     }
 
     /// Download cover art (cached by URL). Calls back on a background queue.
+    /// Handles http(s) URLs and inline `data:` URLs (some players expose art that
+    /// way). The decoded image is normalized to its true PIXEL size so SwiftUI
+    /// renders it at full resolution — a low CFBundle/DPI point-size on the rep
+    /// would otherwise make a high-res image render soft.
     private func loadArtwork(_ urlString: String?, completion: @escaping (NSImage?) -> Void) {
         guard let s = urlString, !s.isEmpty, let url = URL(string: s) else {
             completion(nil); return
         }
         if s == lastArtworkURL { completion(lastArtworkImage); return }
+
+        // Inline data: URL — decode synchronously, no network.
+        if s.hasPrefix("data:"), let data = try? Data(contentsOf: url) {
+            let image = Self.normalizedImage(from: data)
+            lastArtworkURL = s; lastArtworkImage = image
+            completion(image); return
+        }
+
         URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
-            let image = data.flatMap { NSImage(data: $0) }
+            let image = data.flatMap { Self.normalizedImage(from: $0) }
             self?.lastArtworkURL = s
             self?.lastArtworkImage = image
             completion(image)
         }.resume()
+    }
+
+    /// Build an NSImage whose `size` (points) equals its bitmap PIXEL size, so
+    /// SwiftUI never upscales a high-res cover from a small logical size.
+    private static func normalizedImage(from data: Data) -> NSImage? {
+        guard let rep = NSBitmapImageRep(data: data) else { return NSImage(data: data) }
+        let image = NSImage(size: NSSize(width: rep.pixelsWide, height: rep.pixelsHigh))
+        image.addRepresentation(rep)
+        return image
     }
 
     // MARK: - Outbound: transport commands → extension

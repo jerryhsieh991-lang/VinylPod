@@ -46,6 +46,33 @@ function publish() {
   return payload;
 }
 
+// ---- Artwork quality: upgrade CDN thumbnail URLs to high-res variants -------
+// A single chokepoint so EVERY source benefits (named-site scrapers AND the
+// universal MediaSession path, which often yields a small cover). These CDNs
+// support lossless on-the-fly resizing via their URL, so the app downloads a
+// crisp image at no extra payload cost. Unknown hosts pass through untouched.
+function boostArtworkURL(url) {
+  if (!url || typeof url !== "string") return url;
+  try {
+    // Spotify: size is encoded in the image id (4851=64px, 1e02=300px) -> b273=640px.
+    if (url.indexOf("i.scdn.co") !== -1) {
+      return url.replace(/ab67616d[0-9a-f]{8}/, "ab67616d0000b273");
+    }
+    // Apple Music / mzstatic: rewrite the WxH segment (and {w}x{h} template) -> 1000px.
+    if (url.indexOf("mzstatic.com") !== -1) {
+      return url
+        .replace(/\{w\}x\{h\}/i, "1000x1000")
+        .replace(/\/\d+x\d+((?:bb|cc|sr|fn|bf|[a-z]{1,2})?)\.(jpe?g|png|webp)/i,
+                 "/1000x1000$1.$2");
+    }
+    // Google image CDN (YouTube Music, etc.): "=wW-hH" / "=sN" -> 544px.
+    if (url.indexOf("googleusercontent.com") !== -1 || url.indexOf("ggpht.com") !== -1) {
+      return url.replace(/=w\d+-h\d+/, "=w544-h544").replace(/=s\d+/, "=s544");
+    }
+  } catch (e) { /* fall through to original */ }
+  return url;
+}
+
 // ---- Inbound messages from content scripts / consumers ---------------------
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || typeof msg.type !== "string") return;
@@ -54,6 +81,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     case "vinylpod:nowplaying": {
       const tabId = sender.tab && sender.tab.id;
       if (tabId != null) {
+        if (msg.payload) msg.payload.artwork = boostArtworkURL(msg.payload.artwork);
         tabState.set(tabId, { payload: msg.payload, ts: Date.now() });
         publish();
       }
