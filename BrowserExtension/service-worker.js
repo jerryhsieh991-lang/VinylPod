@@ -179,20 +179,32 @@ chrome.runtime.onInstalled.addListener(injectOpenTabs);
 // Net effect: with the app closed and nothing playing, ZERO connection errors;
 // while music plays with the app closed, at most an occasional line.
 let ws = null;
-let wsRetry = 0;
-let wsTimer = null;
-let wsAppSeen = false; // true once the app has accepted a connection this session
+let wsAppSeen = false;       // app accepted a connection at least once this session
+let wsQuietUntil = 0;        // do not attempt before this epoch-ms (silence window)
+const WS_QUIET_DOWN = 120000; // app never answered → stay quiet 2 min between probes
+const WS_QUIET_DROP = 15000;  // app was up and dropped → re-probe sooner (15s)
 
 function hasDeliverableTrack() {
   for (const rec of tabState.values()) if (rec && rec.payload) return true;
   return false;
 }
 
-// Connect only if we have data AND aren't already connected/connecting/scheduled.
-function wsEnsure() {
-  if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;
-  if (wsTimer) return;
-  if (!hasDeliverableTrack()) return;
+// Attempt a connection ONLY when it can plausibly succeed. A refused WebSocket
+// logs an UNCATCHABLE `net::ERR_CONNECTION_REFUSED` in DevTools — it cannot be
+// swallowed in onerror — so the only way to stay quiet while the app is closed
+// is to STOP attempting. After a refusal we go silent for a window and only
+// re-probe afterwards (driven by the heartbeat / next track update). A closed
+// app therefore costs ~1 line every couple of minutes, not one per cycle; an
+// open app connects on the first try and logs nothing.
+async function wsEnsure() {
+  if (ws && (ws.readyState === 0 || ws.readyState === 1)) return; // up / connecting
+  if (!hasDeliverableTrack()) return;                              // nothing to send
+  // Honor the quiet window, persisted so it survives service-worker restarts.
+  try {
+    const r = await chrome.storage.session.get("wsQuietUntil");
+    if (typeof r.wsQuietUntil === "number") wsQuietUntil = Math.max(wsQuietUntil, r.wsQuietUntil);
+  } catch (_) { /* storage.session may be unavailable in some channels */ }
+  if (Date.now() < wsQuietUntil) return;                           // still quiet → NO attempt, NO error
   wsConnect();
 }
 
@@ -200,13 +212,12 @@ function wsConnect() {
   try {
     ws = new WebSocket(WS_URL);
   } catch (e) {
-    ws = null;
-    scheduleReconnect();
+    onWsDown();
     return;
   }
   ws.onopen = () => {
     wsAppSeen = true;
-    wsRetry = 0;
+    setQuietUntil(0);          // app is up — clear any silence window
     wsSend({ type: "nowplaying", payload: recomputeActive() });
   };
   ws.onmessage = (ev) => {
@@ -217,33 +228,27 @@ function wsConnect() {
       dispatchControl(data.action, data.value);
     }
   };
-  ws.onclose = () => { ws = null; scheduleReconnect(); };
-  ws.onerror = () => { try { ws.close(); } catch (_) {} };
+  ws.onclose = () => { onWsDown(); };
+  ws.onerror = () => { try { ws.close(); } catch (_) {} }; // → onclose → onWsDown
+}
+
+function onWsDown() {
+  ws = null;
+  // Open a silence window so we stop re-logging refused attempts. Shorter when
+  // the app was up this session (likely a transient drop), longer when it has
+  // never answered (probably not running). The heartbeat re-probes afterward.
+  setQuietUntil(Date.now() + (wsAppSeen ? WS_QUIET_DROP : WS_QUIET_DOWN));
+}
+
+function setQuietUntil(ts) {
+  wsQuietUntil = ts;
+  try { chrome.storage.session.set({ wsQuietUntil: ts }); } catch (_) {}
 }
 
 function wsSend(obj) {
   if (ws && ws.readyState === 1) {
     try { ws.send(JSON.stringify(obj)); } catch (_) {}
   }
-}
-
-function scheduleReconnect() {
-  ws = null;
-  if (wsTimer) return;
-  // Stop retrying when there's nothing to deliver — this is what makes the
-  // console go quiet once playback stops or the tab closes.
-  if (!hasDeliverableTrack()) { wsRetry = 0; return; }
-  const n = wsRetry++;
-  // Minimize the browser's UNCATCHABLE "connection refused" console line:
-  //   • App SEEN this session (socket just dropped) → reconnect FAST (1.5s→30s).
-  //   • App NEVER answered (probably not running) → long, quiet backoff
-  //     (10s→2min) so we don't keep logging refused attempts while it's off.
-  // The first successful open flips wsAppSeen → fast regime; it still recovers
-  // on its own within ≤2min once the app launches.
-  const delay = wsAppSeen
-    ? Math.min(30000,  1500  * Math.pow(2, Math.min(n, 4)))
-    : Math.min(120000, 10000 * Math.pow(2, Math.min(n, 4)));
-  wsTimer = setTimeout(() => { wsTimer = null; wsEnsure(); }, delay);
 }
 
 // ---- Heartbeat: survive service-worker suspension (esp. Safari) -------------
