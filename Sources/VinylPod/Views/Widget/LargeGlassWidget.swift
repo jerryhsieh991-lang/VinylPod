@@ -89,58 +89,38 @@ struct LargeGlassWidget: View {
     }
 
     private var glassContainer: some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.82, green: 0.56, blue: 0.72).opacity(0.82),
-                        Color(red: 0.59, green: 0.35, blue: 0.57).opacity(0.88)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-            .overlay(
-                RadialGradient(
-                    colors: [
-                        Color(red: 1.00, green: 0.67, blue: 0.86).opacity(0.28),
-                        Color.clear
-                    ],
-                    center: UnitPoint(x: 0.72, y: 0.06),
-                    startRadius: 8,
-                    endRadius: 210
-                )
-            )
-            .overlay(
-                LinearGradient(
-                    colors: [
-                        Color.white.opacity(0.06),
-                        Color.clear,
-                        Color.black.opacity(0.04)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
+        AdaptiveWidgetGlassBackground(
+            cornerRadius: cornerRadius,
+            accentStrength: 0.24,
+            neutralOpacity: 0.32,
+            strokeOpacity: 0.20
+        )
     }
 
+    @ViewBuilder
     private var artworkCard: some View {
-        Group {
-            if let artwork = nowPlaying.track.artwork {
-                Image(nsImage: artwork)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                SmallWidgetDefaultArtwork()
+        if settings.vinylStyle == .vinyl {
+            // Vinyl Style: spinning record with the cover on the center label.
+            VinylDiskView(artwork: nowPlaying.track.artwork, isSpinning: nowPlaying.isPlaying)
+                .frame(width: artworkSize, height: artworkSize)
+        } else {
+            Group {
+                if let artwork = nowPlaying.track.artwork {
+                    Image(nsImage: artwork)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    SmallWidgetDefaultArtwork()
+                }
             }
+            .frame(width: artworkSize, height: artworkSize)
+            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.10), lineWidth: 0.8)
+            )
+            .shadow(color: Color.black.opacity(0.10), radius: 10, x: 0, y: 5)
         }
-        .frame(width: artworkSize, height: artworkSize)
-        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.10), lineWidth: 0.8)
-        )
-        .shadow(color: Color.black.opacity(0.10), radius: 10, x: 0, y: 5)
     }
 
     private var titleStack: some View {

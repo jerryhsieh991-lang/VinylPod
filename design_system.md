@@ -403,3 +403,87 @@ Dismiss on outside-click / Esc with a quick `VPTheme.fade`.
   border-radius: 5px;
 }
 ```
+
+---
+
+# Desktop Widget Build (2026-06-28)
+
+## Visual extraction
+- Full-screen surface: mauve/pink glass gradient with darker plum lower-left and soft white bloom.
+- Top-left desktop chrome: four small white controls in one row: close, time, display, settings dots.
+- Timer: giant white monospaced time at upper-left; countdown mode shows a smaller seconds suffix.
+- Timer menu: small white ellipsis near timer top-right, popover rows `Time`, `Countdown`, `Countdown Settings`.
+- Countdown editor: white rounded input with large minute number and gray `mins` suffix.
+- Music block: bottom-left title/subtitle, white controls, thin progress rail.
+- Vinyl composition: tilted album art, large black record with concentric groove rings, tonearm on right.
+- Tonearm themes: black and white, toggled by clicking the tonearm.
+
+## Desktop animation rules
+- Vinyl record spins only when `isPlaying == true`; the SwiftUI rotation uses a slow linear repeat animation around `11s/rev`.
+- Vinyl record stops when playback pauses.
+- Tonearm uses a spring rotation: lifted when paused, dropped when playing.
+- Timer uses `TimelineView(.periodic(..., by: 1))` for countdown updates.
+
+## Desktop CSS equivalent
+```css
+.desktop-widget {
+  width: 100vw;
+  height: 100vh;
+  background:
+    radial-gradient(circle at 34% 20%, rgba(255,255,255,.25), transparent 45%),
+    radial-gradient(circle at 48% 18%, rgba(117,48,120,.42), transparent 40%),
+    linear-gradient(135deg, #DB8FC2, #BD6BAD, #8C4587);
+}
+
+@keyframes vinyl-spin {
+  to { transform: rotate(360deg); }
+}
+
+.vinyl-record.is-playing {
+  animation: vinyl-spin 11s linear infinite;
+}
+
+.tonearm {
+  transform-origin: top center;
+  transition: transform .65s cubic-bezier(.22, 1, .36, 1);
+}
+
+.tonearm.is-playing {
+  transform: rotate(7deg);
+}
+
+.tonearm.is-paused {
+  transform: rotate(-11deg);
+}
+```
+
+## Desktop widget refinement pass (2026-06-28 evening)
+- Desktop mode is a fixed screen canvas, not a draggable card: `isMovable = false`, `isMovableByWindowBackground = false`.
+- Desktop mode uses only two layer choices: front status-window level or back desktop-window level.
+- Desktop mode no longer uses `canJoinAllSpaces`; it stays on the current screen/Space instead of following every desktop.
+- Timer ellipsis is an independent top layer anchored near the top-right edge of the time, not inside the `TimelineView` text row.
+- Timer menu must be intrinsically sized with `fixedSize(vertical: true)` so rows do not stretch into a tall broken panel.
+- Countdown settings is a focused editor state: while open, the giant timer and timer ellipsis fade out so the white input panel never overlaps the numerals.
+- Liquid glass background = mauve vinyl gradient + `hudWindow` blur + album-accent soft-light overlay at roughly 14% opacity.
+- Vinyl deck placement: record is balanced with the album cover visible behind it, not cropped into the right edge.
+- Vinyl record label is intentionally large so the album art is readable at desktop scale.
+- Groove treatment uses two layers: subtle white highlight rings plus darker physical grooves for a real pressed-record texture.
+
+## Floating widget adaptive glass pass
+- Difference observed against VinyIpod reference: the old VinylPod widgets used a fixed mauve/purple gradient; VinyIpod uses neutral frosted glass that changes subtly with album artwork.
+- New rule: floating widgets start from macOS `hudWindow` blur, then apply `settings.accentColor` as a soft-light wash around 22-24% opacity.
+- Blue album art should produce blue-gray glass; monochrome album art should produce neutral gray glass; warm album art should produce cream/tan glass.
+- Avoid solid color fills: the desktop wallpaper must remain visible through the card.
+
+---
+
+## Keyboard Shortcuts window (from reference screenshot)
+
+Native titled NSWindow ("Keyboard shortcuts", dark), ~546×458. Three grouped
+blocks of rows; each row = right-aligned action label (~150pt column, secondary
+white) + a gray "Record Shortcut" pill (`white @ 12%` fill, ~12pt text).
+Groups: [Play/pause, Next track, Previous track, Open player] · [Toggle notch
+open, Toggle menu bar visibility, Toggle popover] · [Widget size, Display in
+fullscreen, Window top/bottom]. Recording shows the live combo as ⌃⌥⇧⌘+key; a
+trailing ✕ clears. Global firing via Carbon RegisterEventHotKey (no Accessibility
+permission). Persisted in UserDefaults key `keyboardShortcuts` (JSON).

@@ -174,6 +174,8 @@ struct SettingsMenuButton: View {
         // Window / system toggles.
         checkRow(title: "Keep Window in Front", checked: settings.keepWindowInFront) {
             settings.keepWindowInFront.toggle()
+            // Native window layering (NSWindowLevel), not z-index.
+            WindowCoordinator.shared.manager?.applyStacking(settings.keepWindowInFront ? .front : .back)
         }
         checkRow(title: "Launch at Login", checked: settings.launchAtLogin) {
             settings.launchAtLogin.toggle()
@@ -195,7 +197,7 @@ struct SettingsMenuButton: View {
 
         // Plain action rows (no-op / print for now).
         checkRow(title: "Keyboard shortcuts", checked: false, showsCheckColumn: true) {
-            print("[SettingsMenu] Keyboard shortcuts tapped")
+            KeyboardShortcutsWindowController.shared.show()
         }
         checkRow(title: "Appearance", checked: false, showsCheckColumn: true) {
             print("[SettingsMenu] Appearance tapped")

@@ -1,0 +1,40 @@
+{
+  "description": "Advanced widget settings: keyboard-shortcut recorder + global Carbon hotkeys, conditional progress bar, native always-on-top.",
+  "decisions": {
+    "hotkeyScope": "global (Carbon RegisterEventHotKey, no Accessibility permission)"
+  },
+  "nodes": {
+    "Shortcut_Model_Store": {
+      "done": true,
+      "file": "Core/Shortcuts.swift",
+      "notes": "KeyCombo (Codable), ShortcutAction enum (10 actions matching the window), ShortcutStore (UserDefaults JSON, @Published)."
+    },
+    "Carbon_HotKey_Engine": {
+      "done": true,
+      "file": "Hotkeys/HotKeyManager.swift",
+      "notes": "RegisterEventHotKey per bound combo; InstallEventHandler dispatch -> onAction(ShortcutAction); reload on store change."
+    },
+    "Shortcut_Recorder_UI": {
+      "done": true,
+      "file": "Views/Widget/ShortcutRecorderView.swift",
+      "notes": "'Record Shortcut' pill; local NSEvent monitor captures modifier+key; shows \u2318\u21e7P; clear button."
+    },
+    "Keyboard_Shortcuts_Window": {
+      "done": true,
+      "file": "Views/Widget/KeyboardShortcutsWindow.swift",
+      "notes": "NSWindow listing all actions in 3 groups with recorder pills, matching the screenshot."
+    },
+    "Progress_Bar_Toggle": {
+      "done": true,
+      "notes": "settings.showProgress gates the bar in ALL sizes incl. Medium/Regular, clean reflow."
+    },
+    "Always_On_Top_OS_API": {
+      "done": true,
+      "notes": "'Keep Window in Front' -> WindowManager.applyStacking(.front/.back) (NSWindowLevel), persisted."
+    },
+    "Wiring": {
+      "done": true,
+      "notes": "App creates ShortcutStore+HotKeyManager, maps actions; SettingsMenu opens the window + wires Keep-in-front."
+    }
+  }
+}
