@@ -32,7 +32,11 @@ struct ModeContentView: View {
 
             // Mode-specific content.
             content
-                // Smoothly cross-fade whenever the track identity changes.
+                // Cross-fade between SIZE layouts so a switch reads as a smooth
+                // fade rather than a hard rebuild-pop (the size-switch jank), and
+                // cross-fade on track identity / play state as before.
+                .transition(.opacity)
+                .animation(VPTheme.fade, value: mode)
                 .animation(VPTheme.fade, value: nowPlaying.track)
                 .animation(VPTheme.fade, value: nowPlaying.isPlaying)
         }
@@ -49,6 +53,11 @@ struct ModeContentView: View {
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted.animation(VPTheme.fade)) { providers in
             handleDrop(providers)
         }
+        // ONE stable identity across all sizes: SwiftUI reuses this outer shell
+        // (landscape + drop layer + hosting view) on a size switch and only
+        // swaps the inner `content`, instead of tearing down and rebuilding the
+        // entire tree (new VisualEffectBlur NSViews + layout) every time.
+        .id("vinylpod.content")
     }
 
     // MARK: - Per-mode content
