@@ -78,7 +78,7 @@ enum WindowMode: String, Codable, CaseIterable, Identifiable {
         case .small:         return CGSize(width: 162, height: 162)
         case .normal:        return CGSize(width: 344, height: 132)
         case .regular:       return CGSize(width: 300, height: 360)
-        case .large:         return CGSize(width: 420, height: 540)
+        case .large:         return CGSize(width: 320, height: 432)
         case .desktopWidget: return CGSize(width: 1280, height: 800)
         }
     }
@@ -113,4 +113,13 @@ enum VinylStyle: String, Codable, CaseIterable {
     case image   // flat album-art card
 
     var displayName: String { self == .vinyl ? "Vinyl" : "Image" }
+}
+
+/// A transport command routed to an external player (browser tab via the
+/// BrowserBridge) when the current track isn't a local file.
+enum ExternalControlAction {
+    case playpause
+    case next
+    case previous
+    case seek(TimeInterval)
 }
