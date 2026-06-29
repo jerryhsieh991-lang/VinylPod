@@ -127,6 +127,41 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   if (tabState.delete(tabId)) publish();
 });
 
+// ---- Inject into ALREADY-OPEN tabs on install/update -----------------------
+// Declarative content_scripts only auto-inject on navigation, so any music tab
+// that was already open when the extension loads captures nothing until it's
+// reloaded. On install we inject the right scripts into existing tabs so it
+// "just works" without the user reloading anything. Mirrors manifest mapping.
+const NAMED_SITES = [
+  { host: "open.spotify.com",  js: ["cs-common.js", "sites/spotify.js"] },
+  { host: "music.apple.com",   js: ["cs-common.js", "sites/apple-music.js"] },
+  { host: "music.youtube.com", js: ["cs-common.js", "sites/youtube-music.js"] },
+  { host: "www.youtube.com",   js: ["cs-common.js", "sites/youtube.js"] },
+];
+
+async function injectOpenTabs() {
+  let tabs = [];
+  try { tabs = await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] }); }
+  catch (_) { return; }
+  for (const tab of tabs) {
+    if (tab.id == null || !tab.url) continue;
+    let host = "";
+    try { host = new URL(tab.url).hostname; } catch (_) { continue; }
+    const named = NAMED_SITES.find((s) => s.host === host);
+    try {
+      if (named) {
+        await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: named.js });
+      } else {
+        // Universal capture: ISOLATED relay + MAIN-world MediaSession reader.
+        await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["universal-relay.js"] });
+        await chrome.scripting.executeScript({ target: { tabId: tab.id }, world: "MAIN", files: ["mediasession-main.js"] });
+      }
+    } catch (_) { /* chrome://, web store, or other restricted tab — skip */ }
+  }
+}
+
+chrome.runtime.onInstalled.addListener(injectOpenTabs);
+
 // ---- Native-app WebSocket bridge (LAZY + quiet when the app is closed) ------
 //
 // The VinylPod app's bridge (ws://127.0.0.1:8787) is OPTIONAL — it only exists
