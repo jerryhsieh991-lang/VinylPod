@@ -6,3 +6,6 @@ DerivedData/
 Package.resolved
 .ui_backup_*/
 dist/
+SafariExtension/build/
+*.xcodeproj/xcuserdata/
+SafariExtension/**/xcuserdata/

@@ -132,7 +132,10 @@ struct ModeContentView: View {
     /// present, else the bare landscape with a tasteful caption). The controls
     /// live in a glass overlay that is HIDDEN at rest and FADES IN on hover.
     private var widgetContent: some View {
-        WidgetCanvas()
+        DesktopWidgetCanvas(
+            onSelectSize: selectSize,
+            onQuit: quit
+        )
     }
 
     // MARK: - Shared pieces
