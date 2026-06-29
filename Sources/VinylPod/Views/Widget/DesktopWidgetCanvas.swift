@@ -34,17 +34,21 @@ struct DesktopWidgetCanvas: View {
                     .padding(.leading, 20)
                     .zIndex(20)
 
-                countdownBlock
-                    .padding(.top, max(108, geo.size.height * 0.14))
-                    .padding(.leading, max(60, geo.size.width * 0.055))
-                    .zIndex(4)
+                if !showCountdownEditor {
+                    countdownBlock
+                        .padding(.top, max(108, geo.size.height * 0.14))
+                        .padding(.leading, max(60, geo.size.width * 0.055))
+                        .transition(.opacity.combined(with: .scale(scale: 0.985, anchor: .topLeading)))
+                        .zIndex(4)
 
-                timerMenuButton
-                    .position(
-                        x: max(430, geo.size.width * 0.055 + 450),
-                        y: max(108, geo.size.height * 0.14) + 12
-                    )
-                    .zIndex(28)
+                    timerMenuButton
+                        .position(
+                            x: max(430, geo.size.width * 0.055 + 450),
+                            y: max(108, geo.size.height * 0.14) + 12
+                        )
+                        .transition(.opacity)
+                        .zIndex(28)
+                }
 
                 playbackBlock
                     .padding(.leading, max(60, geo.size.width * 0.055))
@@ -57,24 +61,41 @@ struct DesktopWidgetCanvas: View {
 
                 if showCountdownEditor {
                     countdownEditor
-                        .position(x: min(max(260, geo.size.width * 0.23), 420), y: 145)
+                        .position(x: min(max(360, geo.size.width * 0.28), 560), y: 142)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                         .zIndex(30)
                 }
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .clipped()
+            .animation(.easeInOut(duration: 0.18), value: showCountdownEditor)
         }
         .onAppear { syncRecordAnimation() }
         .onChange(of: nowPlaying.isPlaying) { _ in syncRecordAnimation() }
     }
 
     private var desktopBackground: some View {
-        ZStack {
+        let palette = settings.albumPalette
+        let dominant = palette.dominant.color
+        let vibrant = palette.vibrant.color
+        let muted = palette.muted.color
+        let shadow = palette.shadow.color
+
+        return ZStack {
+            if nowPlaying.track.isEmpty, let image = DefaultArtworkAsset.image {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .blur(radius: 18)
+                    .scaleEffect(1.08)
+                    .overlay(Color.black.opacity(0.10))
+            }
+
             LinearGradient(
                 colors: [
-                    Color(red: 0.86, green: 0.56, blue: 0.76),
-                    Color(red: 0.74, green: 0.42, blue: 0.68),
-                    Color(red: 0.55, green: 0.27, blue: 0.53)
+                    vibrant.opacity(nowPlaying.track.isEmpty ? 0.62 : 0.76),
+                    muted.opacity(nowPlaying.track.isEmpty ? 0.48 : 0.60),
+                    shadow.opacity(nowPlaying.track.isEmpty ? 0.70 : 0.82)
                 ],
                 startPoint: .topTrailing,
                 endPoint: .bottomLeading
@@ -82,7 +103,7 @@ struct DesktopWidgetCanvas: View {
 
             RadialGradient(
                 colors: [
-                    Color.white.opacity(0.25),
+                    Color.white.opacity(nowPlaying.track.isEmpty ? 0.34 : 0.25),
                     Color.clear
                 ],
                 center: UnitPoint(x: 0.34, y: 0.20),
@@ -92,7 +113,7 @@ struct DesktopWidgetCanvas: View {
 
             RadialGradient(
                 colors: [
-                    Color(red: 0.46, green: 0.19, blue: 0.47).opacity(0.42),
+                    dominant.opacity(nowPlaying.track.isEmpty ? 0.50 : 0.64),
                     Color.clear
                 ],
                 center: UnitPoint(x: 0.48, y: 0.18),
@@ -101,17 +122,17 @@ struct DesktopWidgetCanvas: View {
             )
 
             settings.accentColor
-                .opacity(0.14)
-                .blendMode(.softLight)
+                .opacity(nowPlaying.track.isEmpty ? 0.28 : 0.24)
+                .blendMode(.overlay)
 
             VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
-                .opacity(0.18)
+                .opacity(nowPlaying.track.isEmpty ? 0.18 : 0.12)
 
             LinearGradient(
                 colors: [
                     Color.white.opacity(0.10),
-                    settings.accentColor.opacity(0.10),
-                    Color.black.opacity(0.05)
+                    vibrant.opacity(0.18),
+                    shadow.opacity(0.13)
                 ],
                 startPoint: .topTrailing,
                 endPoint: .bottomLeading
@@ -119,6 +140,7 @@ struct DesktopWidgetCanvas: View {
             .blendMode(.overlay)
         }
         .ignoresSafeArea()
+        .animation(VPTheme.liquid, value: settings.albumPalette)
     }
 
     private var desktopChrome: some View {
@@ -370,27 +392,30 @@ struct DesktopWidgetCanvas: View {
     }
 
     private func vinylDeck(in size: CGSize) -> some View {
-        ZStack {
+        let recordSize = min(560, size.width * 0.285)
+        let coverSize = min(560, size.width * 0.285)
+
+        return ZStack {
             coverArt
-                .frame(width: min(580, size.width * 0.30), height: min(580, size.width * 0.30))
+                .frame(width: coverSize, height: coverSize)
                 .rotationEffect(.degrees(-8))
-                .offset(x: -265, y: 52)
-                .opacity(0.76)
+                .offset(x: -250, y: 36)
+                .opacity(0.80)
 
             vinylRecord
-                .frame(width: min(610, size.width * 0.32), height: min(610, size.width * 0.32))
+                .frame(width: recordSize, height: recordSize)
                 .rotationEffect(.degrees(recordRotation))
-                .offset(x: 170, y: 42)
+                .offset(x: 112, y: 22)
 
             tonearm
                 .frame(width: 250, height: 520)
-                .offset(x: min(465, size.width * 0.24), y: -268)
-                .rotationEffect(.degrees(nowPlaying.isPlaying ? 13 : -7), anchor: .top)
+                .offset(x: min(500, size.width * 0.255), y: -300)
+                .rotationEffect(.degrees(nowPlaying.isPlaying ? 10 : -8), anchor: .top)
                 .animation(.spring(response: 0.65, dampingFraction: 0.78), value: nowPlaying.isPlaying)
                 .onTapGesture { tonearmIsWhite.toggle() }
         }
         .frame(width: size.width, height: size.height, alignment: .center)
-        .position(x: size.width * 0.70, y: size.height * 0.47)
+        .position(x: size.width * 0.625, y: size.height * 0.465)
     }
 
     private var coverArt: some View {
@@ -410,21 +435,54 @@ struct DesktopWidgetCanvas: View {
     private var vinylRecord: some View {
         ZStack {
             Circle()
-                .fill(Color.black.opacity(0.97))
-                .shadow(color: .black.opacity(0.34), radius: 14, x: 0, y: 12)
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color(red: 0.11, green: 0.11, blue: 0.11),
+                            Color.black.opacity(0.98),
+                            Color.black
+                        ],
+                        center: UnitPoint(x: 0.37, y: 0.28),
+                        startRadius: 12,
+                        endRadius: 330
+                    )
+                )
+                .overlay(
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.075),
+                                    Color.clear,
+                                    Color.black.opacity(0.36)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .blendMode(.plusLighter)
+                )
+                .shadow(color: .black.opacity(0.36), radius: 18, x: 0, y: 14)
 
-            ForEach(0..<26, id: \.self) { idx in
+            ForEach(0..<42, id: \.self) { idx in
                 Circle()
                     .stroke(
-                        Color.white.opacity(idx.isMultiple(of: 4) ? 0.055 : 0.026),
-                        lineWidth: idx.isMultiple(of: 5) ? 0.9 : 0.55
+                        Color.white.opacity(idx.isMultiple(of: 6) ? 0.050 : 0.023),
+                        lineWidth: idx.isMultiple(of: 6) ? 0.75 : 0.42
                     )
-                    .padding(CGFloat(idx) * 7.7)
+                    .padding(CGFloat(idx) * 5.6 + 10)
+            }
+
+            ForEach(0..<22, id: \.self) { idx in
+                Circle()
+                    .stroke(Color.black.opacity(idx.isMultiple(of: 3) ? 0.42 : 0.24), lineWidth: 0.55)
+                    .padding(CGFloat(idx) * 8.9 + 18)
             }
 
             Circle()
-                .fill(Color.black.opacity(0.80))
-                .frame(width: 210, height: 210)
+                .fill(Color.black.opacity(0.86))
+                .frame(width: 286, height: 286)
+                .shadow(color: .black.opacity(0.56), radius: 22, x: 0, y: 0)
 
             Group {
                 if let art = nowPlaying.track.artwork {
@@ -435,8 +493,9 @@ struct DesktopWidgetCanvas: View {
                     SmallWidgetDefaultArtwork()
                 }
             }
-            .frame(width: 168, height: 168)
+            .frame(width: 238, height: 238)
             .clipShape(Circle())
+            .overlay(Circle().stroke(Color.white.opacity(0.16), lineWidth: 1))
         }
     }
 
@@ -517,7 +576,7 @@ struct DesktopWidgetCanvas: View {
     private func syncRecordAnimation() {
         if nowPlaying.isPlaying {
             recordRotation = 0
-            withAnimation(.linear(duration: 3.4).repeatForever(autoreverses: false)) {
+            withAnimation(.linear(duration: 11.0).repeatForever(autoreverses: false)) {
                 recordRotation = 360
             }
         } else {

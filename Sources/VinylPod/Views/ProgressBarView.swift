@@ -54,6 +54,7 @@ struct ProgressBarView: View {
                     DragGesture(minimumDistance: 0)
                         .onChanged { g in
                             isDragging = true
+                            guard width > 0 else { return }   // avoid x/0 → NaN seek
                             let f = min(max(g.location.x / width, 0), 1)
                             dragValue = Double(f) * duration
                         }

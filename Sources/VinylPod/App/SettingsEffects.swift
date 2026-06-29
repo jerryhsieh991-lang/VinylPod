@@ -90,8 +90,9 @@ final class SettingsEffects {
             }
             .store(in: &cancellables)
 
-        // 5. `dynamicNotch` and `hideNotchInFullscreen` are intentionally no-ops:
-        // there is no notch HUD feature in this app yet, so nothing is observed.
+        // 5. `dynamicNotch` is owned by WindowManager because it creates an
+        // independent non-activating panel. `hideNotchInFullscreen` is still a
+        // future behavior hook.
     }
 
     // MARK: - 1. Launch at Login
@@ -111,6 +112,7 @@ final class SettingsEffects {
     /// bar is present — that guarantees the app always keeps at least one entry
     /// point (the Dock icon, the menu bar, or both). Otherwise `.regular`.
     private func applyDockPolicy() {
+        guard NSApp != nil else { return }   // no-op before the app finishes launching
         let policy: NSApplication.ActivationPolicy =
             (settings.hideDockIcon && settings.showInMenuBar) ? .accessory : .regular
         if NSApp.activationPolicy() != policy {
@@ -126,6 +128,7 @@ final class SettingsEffects {
     // MARK: - 3. Show Artwork in Dock
 
     private func applyDockArtwork() {
+        guard NSApp != nil else { return }
         // Only paint artwork onto the Dock when both the toggle is on and the
         // Dock icon is actually visible; otherwise clear back to the default icon.
         if settings.showArtworkInDock, dockIconVisible {

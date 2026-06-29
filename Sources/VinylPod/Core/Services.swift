@@ -26,10 +26,11 @@ protocol MetadataReading {
     func read(_ url: URL) async -> Track
 }
 
-/// Extracts a single dominant accent color from album art.
+/// Extracts album-reactive liquid-glass colors from album art.
 /// Implemented by `ArtworkColorExtractor` in the Audio module.
 @MainActor
 protocol ArtworkColorExtracting {
+    func palette(from image: NSImage) -> AlbumColorPalette?
     func dominantColor(from image: NSImage) -> Color?
 }
 
@@ -164,7 +165,9 @@ final class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(desktopLayer.rawValue, forKey: "desktopLayer") }
     }
 
-    /// Adaptive accent extracted from album art (small accents only).
+    /// Adaptive palette extracted from album art. The whole liquid-glass surface
+    /// uses this palette; `accentColor` remains as a convenience for controls.
+    @Published var albumPalette: AlbumColorPalette = .iceMountain
     @Published var accentColor: Color = VPTheme.accentFallback
     @Published var useAdaptiveAccent: Bool = true {
         didSet { UserDefaults.standard.set(useAdaptiveAccent, forKey: "useAdaptiveAccent") }
@@ -189,10 +192,15 @@ final class AppSettings: ObservableObject {
     /// Simple boolean toggles from the dropdown. Persisted by key = property name.
     @Published var showProgress      = true  { didSet { persist("showProgress", showProgress) } }
     @Published var keepWindowInFront = true  { didSet { persist("keepWindowInFront", keepWindowInFront) } }
-    @Published var dynamicNotch      = true  { didSet { persist("dynamicNotch", dynamicNotch) } }
+    @Published var dynamicNotch      = true  {
+        didSet {
+            persist("dynamicNotch", dynamicNotch)
+            WindowCoordinator.shared.manager?.syncDynamicIsland()
+        }
+    }
     @Published var showInMenuBar     = true  { didSet { persist("showInMenuBar", showInMenuBar) } }
     @Published var launchAtLogin     = false { didSet { persist("launchAtLogin", launchAtLogin) } }
-    @Published var showArtworkInDock = true  { didSet { persist("showArtworkInDock", showArtworkInDock) } }
+    @Published var showArtworkInDock = false { didSet { persist("showArtworkInDock", showArtworkInDock) } }
     @Published var hideDockIcon      = true  { didSet { persist("hideDockIcon", hideDockIcon) } }
     @Published var coverArtAsWallpaper = false { didSet { persist("coverArtAsWallpaper", coverArtAsWallpaper) } }
     @Published var hideNotchInFullscreen = false { didSet { persist("hideNotchInFullscreen", hideNotchInFullscreen) } }
@@ -220,7 +228,7 @@ final class AppSettings: ObservableObject {
         dynamicNotch      = Self.bool("dynamicNotch", default: true)
         showInMenuBar     = Self.bool("showInMenuBar", default: true)
         launchAtLogin     = Self.bool("launchAtLogin", default: false)
-        showArtworkInDock = Self.bool("showArtworkInDock", default: true)
+        showArtworkInDock = Self.bool("showArtworkInDock", default: false)
         hideDockIcon      = Self.bool("hideDockIcon", default: true)
         coverArtAsWallpaper = Self.bool("coverArtAsWallpaper", default: false)
         hideNotchInFullscreen = Self.bool("hideNotchInFullscreen", default: false)
@@ -232,6 +240,21 @@ final class AppSettings: ObservableObject {
             return
         }
         withAnimation(VPTheme.fade) { accentColor = color }
+    }
+
+    func setAlbumPalette(from palette: AlbumColorPalette?) {
+        guard useAdaptiveAccent, let palette else {
+            withAnimation(VPTheme.liquid) {
+                albumPalette = .iceMountain
+                accentColor = VPTheme.accentFallback
+            }
+            return
+        }
+
+        withAnimation(VPTheme.liquid) {
+            albumPalette = palette
+            accentColor = palette.vibrant.color
+        }
     }
 }
 

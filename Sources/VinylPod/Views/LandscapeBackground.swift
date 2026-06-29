@@ -6,8 +6,8 @@ import AppKit
 /// Resolution order (per the contract + design system §8):
 ///   1. If `settings.customBackgroundURL` loads as an `NSImage`, show it
 ///      `.scaledToFill` and clipped.
-///   2. Otherwise render a fully procedural "ice mountain" scene in pure
-///      SwiftUI — no image asset required.
+///   2. Otherwise show the bundled uploaded ice mountain.
+///   3. If that image cannot load, render the procedural ice scene.
 ///
 /// In *all* cases a dark `VPTheme.scrim` is overlaid on top so white text and
 /// glass panels stay legible regardless of what is behind them. The scene is
@@ -18,6 +18,11 @@ struct LandscapeBackground: View {
     @EnvironmentObject var settings: AppSettings
 
     var body: some View {
+        let palette = settings.albumPalette
+        let dominant = palette.dominant.color
+        let vibrant = palette.vibrant.color
+        let shadow = palette.shadow.color
+
         ZStack {
             if let url = settings.customBackgroundURL,
                let image = NSImage(contentsOf: url) {
@@ -26,18 +31,55 @@ struct LandscapeBackground: View {
                     .resizable()
                     .scaledToFill()
                     .clipped()
+            } else if let image = DefaultArtworkAsset.image {
+                // Built-in default: the uploaded ice mountain asset.
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .clipped()
             } else {
-                // Built-in default: procedural ice mountain.
+                // Final fallback: procedural ice mountain.
                 IceMountainScene()
             }
 
+            LinearGradient(
+                colors: [
+                    vibrant.opacity(0.24),
+                    dominant.opacity(0.20),
+                    shadow.opacity(0.22)
+                ],
+                startPoint: .topTrailing,
+                endPoint: .bottomLeading
+            )
+            .blendMode(.overlay)
+
+            RadialGradient(
+                colors: [
+                    vibrant.opacity(0.24),
+                    Color.clear
+                ],
+                center: UnitPoint(x: 0.26, y: 0.14),
+                startRadius: 8,
+                endRadius: 220
+            )
+            .blendMode(.screen)
+
             // Consistent dark scrim for legibility on ANY background (§9).
-            VPTheme.scrim
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.16),
+                    Color.black.opacity(0.28),
+                    Color.black.opacity(0.42)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
         }
         // Never let the background overflow its window; corners are clipped by
         // the host view (ModeContentView) where appropriate.
         .clipped()
         .ignoresSafeArea()
+        .animation(VPTheme.liquid, value: settings.albumPalette)
     }
 }
 

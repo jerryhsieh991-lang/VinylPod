@@ -2,11 +2,9 @@ import SwiftUI
 import AppKit
 import CoreGraphics
 
-/// Owns the single on-screen window for VinylPod and is the ONLY thing that
-/// touches `NSWindow` state. It hosts the SwiftUI view produced by the injected
-/// `content` factory; it never builds SwiftUI views itself, and it never touches
-/// audio/playback — switching modes only resizes the window and swaps the hosted
-/// view, so the underlying `NowPlayingService` keeps playing uninterrupted.
+/// Owns VinylPod's on-screen panels and is the ONLY thing that touches
+/// `NSWindow` state. It hosts SwiftUI views produced by injected factories; it
+/// never builds playback UI itself, and it never touches audio/playback.
 @MainActor
 final class WindowManager {
 
@@ -15,6 +13,8 @@ final class WindowManager {
     private let settings: AppSettings
     /// Factory that returns the SwiftUI view to host for a given mode.
     private let content: (WindowMode) -> AnyView
+    /// Factory for the optional top-center dynamic island.
+    private let dynamicIslandContent: (@escaping (Bool) -> Void) -> AnyView
 
     // MARK: Window state
 
@@ -27,13 +27,21 @@ final class WindowManager {
     /// content needs to change.
     private var hostingController: NSHostingController<AnyView>?
 
+    /// Separate notch/dynamic-island panel so the widget can remain anywhere.
+    private var dynamicIslandWindow: NSPanel?
+    private var dynamicIslandHostingController: NSHostingController<AnyView>?
+    private var dynamicIslandExpanded = false
+
     private let originDefaultsKey = "vinylWindowOrigin"
 
     // MARK: Init
 
-    init(settings: AppSettings, content: @escaping (WindowMode) -> AnyView) {
+    init(settings: AppSettings,
+         content: @escaping (WindowMode) -> AnyView,
+         dynamicIslandContent: @escaping (@escaping (Bool) -> Void) -> AnyView = { _ in AnyView(EmptyView()) }) {
         self.settings = settings
         self.content = content
+        self.dynamicIslandContent = dynamicIslandContent
     }
 
     // MARK: - Public API
@@ -53,6 +61,7 @@ final class WindowManager {
             apply(desktopLayer: settings.desktopLayer)
         }
         currentMode = mode
+        syncDynamicIsland()
     }
 
     /// Switch the current window to a new mode WITHOUT recreating playback.
@@ -82,6 +91,16 @@ final class WindowManager {
 
         if mode == .desktopWidget {
             apply(desktopLayer: settings.desktopLayer)
+        }
+        syncDynamicIsland()
+    }
+
+    /// Show/hide the top-center dynamic island based on the persisted setting.
+    func syncDynamicIsland() {
+        if settings.dynamicNotch {
+            showDynamicIsland()
+        } else {
+            hideDynamicIsland()
         }
     }
 
@@ -212,6 +231,7 @@ final class WindowManager {
         if mode == .desktopWidget {
             apply(desktopLayer: settings.desktopLayer)
         }
+        syncDynamicIsland()
     }
 
     // MARK: - Content hosting
@@ -234,6 +254,101 @@ final class WindowManager {
         }
         // Let the hosted SwiftUI content show through the transparent window.
         window.contentView?.wantsLayer = true
+    }
+
+    // MARK: - Dynamic island panel
+
+    private func showDynamicIsland() {
+        let panel = dynamicIslandWindow ?? makeDynamicIslandWindow()
+        dynamicIslandWindow = panel
+        hostDynamicIslandContent(in: panel)
+        sizeAndPositionDynamicIsland(panel, expanded: dynamicIslandExpanded, animated: false)
+        panel.orderFront(nil)
+    }
+
+    private func hideDynamicIsland() {
+        dynamicIslandHostingController = nil
+        dynamicIslandWindow?.orderOut(nil)
+        dynamicIslandWindow?.close()
+        dynamicIslandWindow = nil
+        dynamicIslandExpanded = false
+    }
+
+    private func makeDynamicIslandWindow() -> NSPanel {
+        let panel = NSPanel(
+            contentRect: dynamicIslandFrame(expanded: false),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.titlebarAppearsTransparent = true
+        panel.titleVisibility = .hidden
+        panel.hasShadow = false
+        panel.isMovable = false
+        panel.isMovableByWindowBackground = false
+        panel.hidesOnDeactivate = false
+        panel.isFloatingPanel = true
+        panel.becomesKeyOnlyIfNeeded = true
+        panel.ignoresMouseEvents = false
+        panel.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)))
+        // Stay on the current screen/Space; do not follow every desktop.
+        panel.collectionBehavior = [.stationary, .ignoresCycle, .fullScreenAuxiliary]
+        return panel
+    }
+
+    private func hostDynamicIslandContent(in window: NSWindow) {
+        let view = dynamicIslandContent { [weak self] expanded in
+            Task { @MainActor [weak self] in
+                self?.setDynamicIslandExpanded(expanded)
+            }
+        }
+
+        if let controller = dynamicIslandHostingController {
+            controller.rootView = view
+            if window.contentView !== controller.view {
+                window.contentView = controller.view
+            }
+        } else {
+            let controller = NSHostingController(rootView: view)
+            dynamicIslandHostingController = controller
+            window.contentView = controller.view
+        }
+        window.contentView?.wantsLayer = true
+    }
+
+    private func setDynamicIslandExpanded(_ expanded: Bool) {
+        dynamicIslandExpanded = expanded
+        guard let dynamicIslandWindow else { return }
+        sizeAndPositionDynamicIsland(dynamicIslandWindow, expanded: expanded, animated: true)
+    }
+
+    private func sizeAndPositionDynamicIsland(_ window: NSWindow, expanded: Bool, animated: Bool) {
+        let targetFrame = dynamicIslandFrame(expanded: expanded)
+        if animated {
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = 0.30
+                ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                ctx.allowsImplicitAnimation = true
+                window.animator().setFrame(targetFrame, display: true)
+            }
+        } else {
+            window.setFrame(targetFrame, display: true)
+        }
+    }
+
+    private func dynamicIslandFrame(expanded: Bool) -> NSRect {
+        let screen = window?.screen?.frame
+            ?? NSScreen.main?.frame
+            ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let size = expanded ? CGSize(width: 430, height: 700) : CGSize(width: 390, height: 30)
+        let topInset: CGFloat = expanded ? 0 : 3
+        let origin = NSPoint(
+            x: screen.midX - size.width / 2,
+            y: screen.maxY - size.height - topInset
+        )
+        return NSRect(origin: origin, size: size)
     }
 
     // MARK: - Sizing & positioning

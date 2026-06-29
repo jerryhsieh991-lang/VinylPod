@@ -1,0 +1,51 @@
+{
+  "project": "VinylPod comparative polish",
+  "target": "native-swiftui",
+  "description": "Polish current VinylPod widgets against the right-side reference app: dynamic island first, then typography, progress placement, menu visibility, and album-aware liquid glass.",
+  "ai_structuer": {
+    "identity": {
+      "target_font": "SF Pro / SF Pro Rounded-style native Apple sans",
+      "primary_accent_color": "dynamic from album artwork via ArtworkColorExtractor",
+      "background_mood": "smoky adaptive liquid glass over the user's desktop wallpaper"
+    },
+    "layout": {
+      "dynamic_island_anchor": "top-center of the main screen at the menu bar/notch line",
+      "progress_bar_shift": "large widget progress cluster moved upward by reducing title/control spacers",
+      "settings_menu": "taller album-tinted smoky glass popover with high-contrast white text"
+    }
+  },
+  "nodes": {
+    "Dynamic_Island_Surface": {
+      "done": true,
+      "notes": "Added independent compact/expanded top-center dynamic island panel with visible settings trigger and animated equalizer bars."
+    },
+    "Target_Font_Replacement": {
+      "done": true,
+      "notes": "Theme typography now uses native SF Pro-like bold/semibold weights matching the reference's Apple UI text feel."
+    },
+    "Progress_Bar_Shift_Up": {
+      "done": true,
+      "notes": "Large widget progress/control group moved upward to match the target app's tighter vertical rhythm."
+    },
+    "Global_Settings_Visibility": {
+      "done": true,
+      "notes": "Settings trigger now defaults to a dark high-contrast capsule and the menu uses white ink."
+    },
+    "Expanded_Settings_Menu_Layout": {
+      "done": true,
+      "notes": "Settings popover widened and max height increased to avoid the cut-off look."
+    },
+    "Dynamic_Album_Glass_Engine": {
+      "done": true,
+      "notes": "Existing album-art color extraction now visibly feeds the floating widgets, settings menu, desktop background, and dynamic island glass wash. Idle state uses the uploaded ice mountain as the fallback art and a cool blue fallback accent."
+    },
+    "Uploaded_Ice_Mountain_Idle_Artwork": {
+      "done": true,
+      "notes": "The uploaded majestic ice mountain image is packaged as a SwiftPM resource and displayed anywhere the app has no current track artwork."
+    },
+    "Liquid_Glass_Depth_Pass": {
+      "done": true,
+      "notes": "Shared widget glass now uses blur, darker inner depth, album/ice edge refraction, a soft white specular streak, and a stronger bottom shade."
+    }
+  }
+}
