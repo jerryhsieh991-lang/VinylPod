@@ -21,6 +21,12 @@ struct SettingsMenuButton: View {
     var onSelectSize: (WindowMode) -> Void
     /// Called when the "Quit" row is chosen.
     var onQuit: () -> Void
+    var triggerSize: CGFloat = 24
+    var glyphSize: CGFloat = 12
+    var menuOffsetY: CGFloat = 30
+    var triggerFill: Color? = nil
+    var triggerStroke: Color? = nil
+    var triggerForeground: Color? = nil
 
     @VPState private var open = false
     @VPState private var triggerHovered = false
@@ -28,28 +34,19 @@ struct SettingsMenuButton: View {
     // Layout constants for the dropdown panel.
     private let menuWidth: CGFloat = 230
     private let menuMaxHeight: CGFloat = 460
+    private let dropdownAnimation = Animation.timingCurve(0.16, 1.0, 0.30, 1.0, duration: 0.28)
+    private let menuInk = Color.black.opacity(0.86)
+    private let menuSecondaryInk = Color.black.opacity(0.48)
+    private let menuMutedInk = Color.black.opacity(0.34)
+    private let menuHoverFill = Color.black.opacity(0.07)
+    private let menuDividerInk = Color.black.opacity(0.12)
 
     var body: some View {
         trigger
-            .overlay(alignment: .topTrailing) {
-                if open {
-                    // Float the dropdown above everything, anchored just under
-                    // the trigger's top-trailing corner.
-                    dropdown
-                        .frame(width: menuWidth)
-                        .offset(y: 30)
-                        .transition(
-                            .scale(scale: 0.96, anchor: .topTrailing)
-                                .combined(with: .opacity)
-                        )
-                        .zIndex(1000)
-                }
-            }
-            // Invisible full-screen catcher that closes the menu on outside tap.
-            .background(alignment: .topTrailing) {
-                if open {
-                    outsideCatcher
-                }
+            .popover(isPresented: $open, arrowEdge: .top) {
+                dropdown
+                    .frame(width: menuWidth)
+                    .fixedSize(horizontal: false, vertical: true)
             }
     }
 
@@ -57,39 +54,24 @@ struct SettingsMenuButton: View {
 
     private var trigger: some View {
         Button {
-            withAnimation(VPTheme.spring) { open.toggle() }
+            withAnimation(dropdownAnimation) { open.toggle() }
         } label: {
             Image(systemName: "ellipsis")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: glyphSize, weight: .semibold))
                 .foregroundColor(
-                    triggerHovered ? VPTheme.textPrimary : VPTheme.textSecondary
+                    triggerForeground ?? (triggerHovered ? VPTheme.textPrimary : VPTheme.textSecondary)
                 )
-                .frame(width: 24, height: 24)
+                .frame(width: triggerSize, height: triggerSize)
                 .background(
                     Circle()
-                        .fill(triggerHovered ? VPTheme.glassTint : Color.clear)
+                        .fill(triggerFill ?? (triggerHovered ? VPTheme.glassTint : Color.clear))
                 )
                 .overlay(
-                    Circle().strokeBorder(VPTheme.glassStroke, lineWidth: 1)
+                    Circle().strokeBorder(triggerStroke ?? VPTheme.glassStroke, lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)
         .onHover { triggerHovered = $0 }
-    }
-
-    // MARK: - Outside catcher
-
-    /// A transparent screen-filling layer that dismisses the menu when clicked
-    /// anywhere outside the dropdown. Placed behind the dropdown (lower zIndex).
-    private var outsideCatcher: some View {
-        Color.clear
-            .frame(width: 4000, height: 4000)
-            .contentShape(Rectangle())
-            .offset(x: 2000, y: -2000) // recenter the oversized rect over the screen
-            .onTapGesture {
-                withAnimation(VPTheme.fade) { open = false }
-            }
-            .zIndex(900)
     }
 
     // MARK: - Dropdown panel
@@ -104,6 +86,10 @@ struct SettingsMenuButton: View {
             }
             .frame(maxHeight: menuMaxHeight)
         }
+        .background(
+            RoundedRectangle(cornerRadius: VPTheme.radius, style: .continuous)
+                .fill(Color.white.opacity(0.78))
+        )
         // Inner top-lit bevel border (brighter top → darker bottom).
         .overlay(
             RoundedRectangle(cornerRadius: VPTheme.radius, style: .continuous)
@@ -120,6 +106,7 @@ struct SettingsMenuButton: View {
                 )
         )
         .shadow(color: Color.black.opacity(0.45), radius: 18, x: 0, y: 6)
+        .compositingGroup()
     }
 
     // MARK: - Menu content (exact hierarchy, top → bottom)
@@ -153,6 +140,7 @@ struct SettingsMenuButton: View {
         ForEach(WindowMode.allCases) { mode in
             checkRow(title: mode.displayName,
                      checked: settings.windowMode == mode) {
+                withAnimation(VPTheme.fade) { open = false }
                 settings.windowMode = mode
                 onSelectSize(mode)
             }
@@ -240,10 +228,10 @@ struct SettingsMenuButton: View {
         HStack(spacing: 8) {
             Image(systemName: "star.fill")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(VPTheme.textMuted)
+                .foregroundColor(menuMutedInk)
             Text("You're a Pro")
                 .font(VPTheme.body(13))
-                .foregroundColor(VPTheme.textMuted)
+                .foregroundColor(menuSecondaryInk)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 12)
@@ -258,7 +246,7 @@ struct SettingsMenuButton: View {
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
             .font(VPTheme.caption())
-            .foregroundColor(VPTheme.textMuted)
+            .foregroundColor(menuMutedInk)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 12)
             .padding(.top, 8)
@@ -286,7 +274,7 @@ struct SettingsMenuButton: View {
                     if checked {
                         Image(systemName: "checkmark")
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(VPTheme.textPrimary)
+                            .foregroundColor(menuInk)
                     }
                 }
                 .frame(width: 16, alignment: .center)
@@ -294,14 +282,14 @@ struct SettingsMenuButton: View {
 
                 Text(title)
                     .font(VPTheme.body(13))
-                    .foregroundColor(VPTheme.textPrimary)
+                    .foregroundColor(menuInk)
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(
                 RoundedRectangle(cornerRadius: VPTheme.radiusSmall, style: .continuous)
-                    .fill(hovered ? Color.white.opacity(0.06) : Color.clear)
+                    .fill(hovered ? menuHoverFill : Color.clear)
                     .padding(.horizontal, 4)
             )
             .contentShape(Rectangle())
@@ -320,17 +308,17 @@ struct SettingsMenuButton: View {
                 Color.clear.frame(width: 16, height: 1)
                 Text(title)
                     .font(VPTheme.body(13))
-                    .foregroundColor(VPTheme.textPrimary)
+                    .foregroundColor(menuInk)
                 Spacer(minLength: 0)
                 Image(systemName: glyph)
                     .font(.system(size: 11, weight: .regular))
-                    .foregroundColor(VPTheme.textSecondary)
+                    .foregroundColor(menuSecondaryInk)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(
                 RoundedRectangle(cornerRadius: VPTheme.radiusSmall, style: .continuous)
-                    .fill(hovered ? Color.white.opacity(0.06) : Color.clear)
+                    .fill(hovered ? menuHoverFill : Color.clear)
                     .padding(.horizontal, 4)
             )
             .contentShape(Rectangle())
@@ -340,7 +328,7 @@ struct SettingsMenuButton: View {
     /// Thin divider tinted with the glass stroke, with small vertical padding.
     private var divider: some View {
         Divider()
-            .overlay(VPTheme.glassStroke)
+            .overlay(menuDividerInk)
             .padding(.horizontal, 12)
             .padding(.vertical, 5)
     }

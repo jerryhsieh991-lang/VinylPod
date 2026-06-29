@@ -140,7 +140,7 @@ final class NowPlayingService: ObservableObject {
 @MainActor
 final class AppSettings: ObservableObject {
 
-    @Published var windowMode: WindowMode = .normal {
+    @Published var windowMode: WindowMode = .small {
         didSet { UserDefaults.standard.set(windowMode.rawValue, forKey: "windowMode") }
     }
     @Published var desktopLayer: DesktopLayer = .front {

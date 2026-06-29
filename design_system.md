@@ -6,6 +6,124 @@
 
 ---
 
+## Small Size Widget Patch
+
+Reference screenshots: `Screenshot 2026-06-28 at 2.45.02 PM.png`,
+`Screenshot 2026-06-28 at 2.44.56 PM.png`, `Screenshot 2026-06-28 at
+2.44.48 PM.png`, and `Screenshot 2026-06-28 at 2.45.11 PM.png`.
+
+### Dimensions
+
+| Token | Value |
+|---|---:|
+| `smallWidgetWidth` | `162 pt` |
+| `smallWidgetHeight` | `162 pt` |
+| `smallWidgetRadius` | `18 pt` continuous |
+| `smallArtworkSize` | `98 pt` |
+| `smallArtworkX` | `11 pt` |
+| `smallArtworkY` | `7 pt` |
+| `smallArtworkRadius` | `7 pt` |
+| `innerCloseButton` | `15 pt` circle |
+| `innerCloseInset` | `3 pt` from artwork top-left |
+| `settingsButton` | `18 pt` circle |
+| `settingsTop` | `6 pt` |
+| `settingsRight` | `6 pt` |
+| `bottomStripHeight` | `42 pt` |
+
+### Colors
+
+| Token | Hex / Opacity | Usage |
+|---|---:|---|
+| `smallGlassBase` | `#C592AB @ 68%` | main widget tint |
+| `smallGlassHotspot` | `#F0A4CF @ 32%` | top-left pink bloom |
+| `smallGlassShadow` | `#000000 @ 22%` | soft desktop shadow |
+| `smallBottomStrip` | `#362833 @ 46%` | bottom controls strip |
+| `smallTextPrimary` | `#FFFFFF @ 92%` | stopped/title text |
+| `smallTextSecondary` | `#FFFFFF @ 78%` | subtitle/artist text |
+| `smallCloseFill` | `#3E3555 @ 78%` | x button fill |
+| `smallCloseStroke` | `#7D86D9 @ 90%` | focused blue close ring |
+| `smallDotsFill` | `#111111 @ 82%` | top-right dots circle |
+
+### CSS Equivalent
+
+```css
+.small-widget-glass {
+  width: 162px;
+  height: 162px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(240,164,207,.32), transparent 42%),
+    linear-gradient(135deg, rgba(197,146,171,.72), rgba(151,108,132,.62));
+  backdrop-filter: blur(28px) saturate(145%);
+  box-shadow: 0 12px 28px rgba(0,0,0,.22), inset 0 1px 1px rgba(255,255,255,.20);
+}
+
+.small-widget-art {
+  position: absolute;
+  left: 11px;
+  top: 7px;
+  width: 98px;
+  height: 98px;
+  border-radius: 7px;
+}
+
+.small-widget-close {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 15px;
+  height: 15px;
+}
+
+.small-widget-dots {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 18px;
+  height: 18px;
+}
+```
+
+### Ai Structuer Dropdown Blueprint
+
+Identity:
+
+| Rule | Value |
+|---|---|
+| Primary Accent Color | `#C592AB` dusty rose |
+| Background Mood | Dusty rose glass over warm desktop |
+| Typography | SF Pro native sans, 13 pt menu rows, 10 pt muted section labels |
+
+Layout:
+
+| Rule | Value |
+|---|---|
+| Default Size on Launch | `Small` |
+| Panel Shape | Rounded square widget, rounded dropdown page |
+| Dropdown Anchor | Top-right, directly below the three-dot icon |
+| Dropdown Animation | Smooth page slide down from top edge with opacity |
+| Dropdown Z Stack | Outside catcher `zIndex 900`, dropdown `zIndex 2000` |
+
+CSS equivalent:
+
+```css
+.settings-dropdown-page {
+  width: 230px;
+  max-height: 460px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.72);
+  backdrop-filter: blur(30px) saturate(160%);
+  box-shadow: 0 18px 32px rgba(0,0,0,.28);
+  transform-origin: top right;
+  transition: transform .28s cubic-bezier(.16,1,.3,1), opacity .18s ease;
+  z-index: 2000;
+}
+
+.settings-row:hover {
+  background: rgba(255,255,255,.06);
+}
+```
+
 ## 1. Design Philosophy
 
 > **Stunning enough for the visual lover, simple enough for everyone.**
@@ -186,3 +304,65 @@ Actions: Keyboard shortcuts, Appearance, Rate us, Share our app, About, Quit.
 ## Menu motion (default chosen)
 Open: scale 0.96→1.0 + opacity 0→1 over `VPTheme.spring`, anchored to trigger.
 Dismiss on outside-click / Esc with a quick `VPTheme.fade`.
+
+---
+
+# Medium Widget Readability Patch (2026-06-28)
+
+## Medium widget dimensions
+- Window mode label: `Medium` (code enum remains `normal` for compatibility).
+- Default medium size: `344 x 132`.
+- Container radius: `18`.
+- Album art: `100 x 100`, radius `7`, placed left with 18pt leading padding.
+- Top-right settings trigger: 18pt black circular ellipsis, 9pt glyph, inset 9pt from top/right.
+- Text area: 184pt wide, strong white title with subtle black shadow for visibility.
+
+## Readable popover menu palette
+- Popover panel fill: white/frosted material with an extra white wash `white @ 0.78-0.80`.
+- Primary menu text: `black @ 0.86`.
+- Secondary menu text: `black @ 0.48`.
+- Muted section/header text: `black @ 0.34-0.46`.
+- Hover row fill: `black @ 0.07`.
+- Divider: `black @ 0.12`.
+
+## Interaction decision
+- Three-dot menu uses native SwiftUI `.popover` so it is not clipped by the widget window and remains clickable.
+- X/window-behavior menu also uses native SwiftUI `.popover` so the options can appear outside the album-art bounds.
+
+---
+
+# Regular Widget Build (2026-06-28)
+
+## Visual extraction
+- Reference scale: `300 x 360` floating card, seen on desktop as a compact tall album widget.
+- Card radius: `12 pt`, noticeably less rounded than Small/Medium but still soft.
+- X button: `15 pt` dark circle, 7pt inset from the top-left edge, always visible.
+- Three-dot settings: `18 pt` black circle, 9pt top/right inset, anchored to the regular settings popover.
+- Artwork: fills the entire card, cropped center, with mauve-pink sky and violet lower wash.
+- Controls: white previous/play/next icons floating over the artwork around `y = 151`.
+- Caption: bottom 86pt gradient panel, centered title/subtitle, strong white text.
+
+## Regular CSS equivalent
+```css
+.regular-widget {
+  width: 300px;
+  height: 360px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(197, 146, 171, .72);
+  backdrop-filter: blur(28px) saturate(145%);
+  box-shadow:
+    0 10px 18px rgba(0,0,0,.22),
+    inset 0 1px 1px rgba(255,255,255,.12);
+}
+
+.regular-bottom-caption {
+  height: 86px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(128,64,125,.74),
+    rgba(120,61,120,.88)
+  );
+}
+```

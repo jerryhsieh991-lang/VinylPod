@@ -1,34 +1,44 @@
 {
+  "schema_version": 2,
   "target": "native-swiftui",
-  "description": "Compact Glass Widget \u2014 native SwiftUI build of the reference VinylPod player chrome (in-art X + window-behavior popover, three-dots settings menu).",
+  "description": "Small and medium widget three-dot dropdown rebuild. The menu opens from the top-right ellipsis as a native popover so it stays visible, readable, and clickable outside the widget bounds.",
+  "ai_structuer": {
+    "identity": {
+      "primary_accent_color": "#C592AB",
+      "background_mood": "dusty rose glass over warm desktop",
+      "typography": "SF Pro rounded-feeling native sans"
+    },
+    "layout": {
+      "default_size_on_launch": "Small",
+      "panel_shape": "rounded square widget plus rounded dropdown page",
+      "dropdown_placement": "anchored top-right under the three-dot icon",
+      "dropdown_animation": "native popover reveal with smooth toggle animation"
+    }
+  },
   "nodes": {
-    "Core_Settings_State": {
+    "Small_Widget_Container": {
       "done": true,
-      "notes": "Add to AppSettings: musicSource, vinylStyle, showProgress, keepWindowInFront, dynamicNotch, showInMenuBar, launchAtLogin, showArtworkInDock, hideDockIcon, coverArtAsWallpaper, hideNotchInFullscreen. Add VinylStyle enum + reuse DesktopLayer as window stacking."
+      "notes": "Small mode defaults to a 162 x 162 compact glass widget with dusty rose gradient and bottom playback strip."
     },
-    "Glass_Base_Container": {
+    "Three_Dot_Icon": {
       "done": true,
-      "notes": "Reuse/upgrade GlassPanel: frosted backdrop, inner 3D border stroke (bright top, dark bottom), mauve/dark-slate tint, rounded corners."
+      "notes": "Top-right 18 pt black ellipsis trigger remains visible and anchors the dropdown."
     },
-    "Album_Art_With_Inner_X": {
+    "Dropdown_List_Animation": {
       "done": true,
-      "notes": "Album art square; X close button = semi-transparent dark circle INSIDE the art at top-left."
+      "notes": "Dropdown uses native SwiftUI popover anchoring, avoiding window clipping and keeping all rows clickable."
     },
-    "X_Window_Behavior_Menu": {
+    "Size_Selection_Logic": {
       "done": true,
-      "notes": "Glass popover from X: header 'Window behavior'; 'Above all windows' (check), 'Below all windows'; divider; 'Quit'."
+      "notes": "Small, Medium, Large, and Desktop Widget rows remain clickable and call onSelectSize(mode)."
     },
-    "Playback_Controls_UI": {
+    "Medium_Widget_Readability": {
       "done": true,
-      "notes": "prev / play-pause / next; accent-tinted play; optional progress bar (showProgress)."
+      "notes": "Medium mode is now a 344 x 132 horizontal compact widget with stronger white text, visible controls, in-art X, and top-right ellipsis."
     },
-    "Settings_Dropdown_Menu": {
+    "Popover_Text_Contrast": {
       "done": true,
-      "notes": "Three-dots trigger -> long scrollable glass dropdown with all sections + checkmarks (see design_system.md)."
-    },
-    "Integration": {
-      "done": true,
-      "notes": "Compact widget layout wired into ModeContentView (.small/.normal); WindowManager applies stacking in all modes; build + visual verify."
+      "notes": "Three-dot and X popovers use dark ink over bright frosted material so labels remain visible."
     }
   }
 }

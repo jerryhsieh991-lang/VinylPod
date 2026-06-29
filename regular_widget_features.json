@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "target": "native-swiftui",
+  "description": "Regular size widget recreation from the four 2026-06-28 reference screenshots.",
+  "ai_structuer": {
+    "identity": {
+      "primary_accent_color": "#C592AB",
+      "background_mood": "mauve album glass over warm macOS desktop",
+      "typography": "SF Pro native sans, bold white title and subtitle"
+    },
+    "layout": {
+      "default_regular_size": "300 x 360",
+      "panel_shape": "tall rounded artwork card",
+      "x_button_placement": "inside top-left, 7pt inset",
+      "settings_placement": "inside top-right, 9pt inset",
+      "controls_placement": "centered over artwork around y=151",
+      "caption_placement": "bottom 86pt gradient panel"
+    }
+  },
+  "nodes": {
+    "Regular_Glass_Container": {
+      "done": true,
+      "notes": "Regular mode is a 300 x 360 clipped rounded card with mauve overlays and soft shadow."
+    },
+    "Top_Left_X_Button": {
+      "done": true,
+      "notes": "Uses AlbumArtCloseButton with a 15 pt always-visible close control inset 7 pt."
+    },
+    "Top_Right_Settings_Dots": {
+      "done": true,
+      "notes": "Uses the shared 18 pt black ellipsis popover trigger inset 9 pt from top/right."
+    },
+    "Main_Artwork_and_Info": {
+      "done": true,
+      "notes": "Artwork fills the full card with a bottom caption gradient and centered stopped/title copy."
+    },
+    "Playback_Controls": {
+      "done": true,
+      "notes": "Previous/play/next controls float over the artwork in white with subtle shadow."
+    }
+  }
+}

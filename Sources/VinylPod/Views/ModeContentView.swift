@@ -58,59 +58,43 @@ struct ModeContentView: View {
         switch mode {
         case .small:          smallContent
         case .normal:         normalContent
+        case .regular:        regularContent
         case .large:          largeContent
         case .desktopWidget:  widgetContent
         }
     }
 
-    /// Small: just the play/pause control over the landscape, on a small glass
-    /// backing. Minimal — no text.
+    /// Small: the compact glass widget from the reference screenshots.
     private var smallContent: some View {
-        TransportControls(playSize: 64)
-            // Hide the skip buttons in the tiniest mode by clipping width.
-            .frame(width: 64, height: 64, alignment: .center)
-            .clipped()
-            .padding(18)
-            .glassBackground(cornerRadius: VPTheme.radius)
-            .padding(20)
+        SmallGlassWidget(
+            currentLayer: settings.desktopLayer,
+            onSelectLayer: selectLayer,
+            onSelectSize: selectSize,
+            onQuit: quit
+        )
     }
 
-    /// Normal: the signature COMPACT GLASS WIDGET — a horizontal card with the
+    /// Medium: the signature COMPACT GLASS WIDGET — a horizontal card with the
     /// album art (carrying the in-art X / window-behavior popover) on the left,
     /// track info + progress + transport in the middle, and the three-dots
     /// settings menu pinned top-right.
     private var normalContent: some View {
-        ZStack(alignment: .topTrailing) {
-            Group {
-                if nowPlaying.track.isEmpty {
-                    emptyHint
-                        .frame(maxWidth: 320)
-                } else {
-                    HStack(spacing: 14) {
-                        AlbumArtCloseButton(
-                            artwork: nowPlaying.track.artwork,
-                            currentLayer: settings.desktopLayer,
-                            onSelectLayer: selectLayer,
-                            onQuit: quit
-                        )
-                        .frame(width: 78, height: 78)
+        MediumGlassWidget(
+            currentLayer: settings.desktopLayer,
+            onSelectLayer: selectLayer,
+            onSelectSize: selectSize,
+            onQuit: quit
+        )
+    }
 
-                        VStack(alignment: .leading, spacing: 8) {
-                            trackHeader(titleSize: 15, artistSize: 12, alignment: .leading)
-                            if settings.showProgress { ProgressBarView() }
-                            TransportControls(playSize: 38)
-                        }
-                    }
-                    .frame(maxWidth: 320)
-                }
-            }
-            .padding(20)
-            .padding(.trailing, 8)            // room for the three-dots button
-            .glassBackground(cornerRadius: VPTheme.radius)
-
-            settingsButton.padding(12)
-        }
-        .padding(18)
+    /// Regular: the tall album-art card from the latest reference screenshots.
+    private var regularContent: some View {
+        RegularGlassWidget(
+            currentLayer: settings.desktopLayer,
+            onSelectLayer: selectLayer,
+            onSelectSize: selectSize,
+            onQuit: quit
+        )
     }
 
     /// Large: album artwork (with the in-art X), full metadata + source chip,

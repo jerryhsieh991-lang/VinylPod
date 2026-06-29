@@ -1,0 +1,52 @@
+{
+  "description": "VinylPod Chrome Extension (Manifest V3) \u2014 BACKEND ONLY. Captures now-playing data (title/artist/artwork/isPlaying/currentTime/duration) from web players and exposes bidirectional control. No popup/UI.",
+  "config": {
+    "pollIntervalMs": 1000,
+    "wsBridgeUrl": "ws://127.0.0.1:8787"
+  },
+  "nodes": {
+    "Manifest_V3_Setup": {
+      "done": true,
+      "file": "manifest.json",
+      "notes": "MV3, service_worker, host_permissions, content_scripts (per-site + universal MAIN/relay)."
+    },
+    "Background_Service_Worker": {
+      "done": true,
+      "file": "service-worker.js",
+      "notes": "Central state store per tab, message router, control relay, best-effort WS push to native app."
+    },
+    "Message_Passing_Bridge": {
+      "done": true,
+      "file": "cs-common.js",
+      "notes": "Shared isolated-world runner: poll readState(), diff, report; listen for control msgs -> adapter.controls."
+    },
+    "MediaSession_Fallback_Listener": {
+      "done": true,
+      "files": [
+        "mediasession-main.js",
+        "universal-relay.js"
+      ],
+      "notes": "MAIN-world reads navigator.mediaSession + media element; relay forwards to SW; control via media element."
+    },
+    "Spotify_DOM_Scraper": {
+      "done": true,
+      "file": "sites/spotify.js"
+    },
+    "AppleMusic_DOM_Scraper": {
+      "done": true,
+      "file": "sites/apple-music.js"
+    },
+    "YouTube_DOM_Scraper": {
+      "done": true,
+      "file": "sites/youtube.js"
+    },
+    "YouTubeMusic_DOM_Scraper": {
+      "done": true,
+      "file": "sites/youtube-music.js"
+    },
+    "Playback_Controller": {
+      "done": true,
+      "notes": "Control path: SW -> chrome.tabs.sendMessage -> content script -> DOM click / media element; covered across cs-common + adapters."
+    }
+  }
+}
