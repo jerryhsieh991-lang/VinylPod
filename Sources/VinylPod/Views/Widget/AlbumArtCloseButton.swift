@@ -24,9 +24,18 @@ struct AlbumArtCloseButton: View {
     var onSelectLayer: (DesktopLayer) -> Void
     var onQuit: () -> Void
 
+    // Drives the Vinyl/Image style + spinning (Vinyl Style setting). Read from
+    // the environment so call sites don't change.
+    @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var nowPlaying: NowPlayingService
+
     // View-local state (CLT workaround: @VPState, never @State).
     @VPState private var showPopover = false
     @VPState private var hovering = false
+
+    /// True when this tile should render the spinning vinyl disc instead of the
+    /// flat album-art card.
+    private var isVinylArt: Bool { showsArtworkLayer && settings.vinylStyle == .vinyl }
 
     var body: some View {
         // ZStack with `.topLeading` alignment so BOTH the X button and the
@@ -34,20 +43,24 @@ struct AlbumArtCloseButton: View {
         // the art bounds, and the popover floats out from just below/right of it.
         ZStack(alignment: .topLeading) {
 
-            // ── Album art (or placeholder) — fills the frame as a rounded square.
+            // ── Album art (or placeholder) — fills the frame as a rounded square,
+            // OR the spinning vinyl disc when the Vinyl style is selected.
             artworkLayer
                 // Inner 3D bevel: top-lit linear-gradient stroke (white→black).
-                .overlay(
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [Color.white.opacity(0.35), Color.black.opacity(0.25)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            ),
-                            lineWidth: 1
-                        )
-                )
+                // Skipped for the vinyl disc (it has its own round edge).
+                .overlay {
+                    if !isVinylArt {
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.35), Color.black.opacity(0.25)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ),
+                                lineWidth: 1
+                            )
+                    }
+                }
 
             // ── The 'X' button — INSIDE the art, top-left, inset ~8pt via padding.
             // It is part of this same `.topLeading` ZStack, so it pins to the
@@ -78,6 +91,9 @@ struct AlbumArtCloseButton: View {
         if !showsArtworkLayer {
             Color.clear
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        } else if settings.vinylStyle == .vinyl {
+            // Vinyl Style: spinning record with the cover on the center label.
+            VinylDiskView(artwork: artwork, isSpinning: nowPlaying.isPlaying)
         } else if let artwork {
             Image(nsImage: artwork)
                 .resizable()

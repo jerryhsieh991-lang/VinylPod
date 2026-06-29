@@ -242,5 +242,6 @@ final class AppEnvironment {
     static let shared = AppEnvironment()
     let nowPlaying = NowPlayingService()
     let settings = AppSettings()
+    let shortcuts = ShortcutStore()
     private init() {}
 }

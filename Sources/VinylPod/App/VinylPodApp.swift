@@ -44,6 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var colors: ArtworkColorExtractor?
     private var windowManager: WindowManager?
     private var browserBridge: BrowserBridge?
+    private var hotKeys: HotKeyManager?
 
     /// Local key-event monitor for ⌘1–⌘4. Retained so we can remove it on quit.
     private var keyMonitor: Any?
@@ -111,6 +112,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // --- Install ⌘1–⌘4 keyboard shortcuts --------------------------------
         installModeShortcuts()
 
+        // --- Global user-recorded hotkeys (Carbon, system-wide, no permission) -
+        let hotKeys = HotKeyManager()
+        self.hotKeys = hotKeys
+        hotKeys.onAction = { [weak self] action in self?.perform(action) }
+        env.shortcuts.onChange = { [weak hotKeys] in
+            hotKeys?.reload(from: AppEnvironment.shared.shortcuts)
+        }
+        hotKeys.reload(from: env.shortcuts)
+
         // --- "Open with" / CLI support ---------------------------------------
         // Any audio file paths passed as launch arguments are played at startup,
         // e.g. `open VinylPod.app --args "/path/Song.mp3"`.
@@ -133,6 +143,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let keyMonitor {
             NSEvent.removeMonitor(keyMonitor)
             self.keyMonitor = nil
+        }
+    }
+
+    // MARK: - Global hotkey actions
+
+    /// Routes a fired global hotkey to its behavior.
+    private func perform(_ action: ShortcutAction) {
+        let env = AppEnvironment.shared
+        let wm = WindowCoordinator.shared.manager
+        switch action {
+        case .playPause:     env.nowPlaying.playPause()
+        case .nextTrack:     env.nowPlaying.next()
+        case .previousTrack: env.nowPlaying.previous()
+        case .openPlayer:
+            wm?.show(env.settings.windowMode)
+            NSApp.activate(ignoringOtherApps: true)
+        case .widgetSize:
+            // Cycle to the next window size.
+            let all = WindowMode.allCases
+            if let i = all.firstIndex(of: env.settings.windowMode) {
+                let next = all[(i + 1) % all.count]
+                env.settings.windowMode = next
+                wm?.apply(mode: next)
+            }
+        case .displayFullscreen:
+            env.settings.windowMode = .desktopWidget
+            wm?.apply(mode: .desktopWidget)
+        case .windowTopBottom:
+            let next: DesktopLayer = env.settings.desktopLayer == .front ? .back : .front
+            env.settings.desktopLayer = next
+            wm?.applyStacking(next)
+        case .toggleNotch:   env.settings.dynamicNotch.toggle()
+        case .toggleMenuBar: env.settings.showInMenuBar.toggle()
+        case .togglePopover: break  // the menu-bar popover is system-managed
         }
     }
 
