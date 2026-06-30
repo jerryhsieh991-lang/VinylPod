@@ -11,6 +11,7 @@ struct RegularGlassWidget: View {
     var onQuit: () -> Void
 
     @EnvironmentObject private var nowPlaying: NowPlayingService
+    @EnvironmentObject private var settings: AppSettings
     @VPState private var hovering = false
 
     private let widgetSize = CGSize(width: 300, height: 360)
@@ -83,12 +84,15 @@ struct RegularGlassWidget: View {
     }
 
     private var artworkTone: some View {
-        ZStack {
+        let palette = settings.albumPalette
+        let brightCover = palette.dominant.relativeLuminance > 0.46
+
+        return ZStack {
             LinearGradient(
                 colors: [
                     Color.white.opacity(0.05),
                     Color.clear,
-                    Color.black.opacity(0.08)
+                    Color.black.opacity(brightCover ? 0.16 : 0.10)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -97,7 +101,8 @@ struct RegularGlassWidget: View {
             LinearGradient(
                 colors: [
                     Color.clear,
-                    Color(red: 0.48, green: 0.24, blue: 0.48).opacity(0.34)
+                    palette.vibrant.color.opacity(0.22),
+                    palette.shadow.color.opacity(brightCover ? 0.42 : 0.30)
                 ],
                 startPoint: UnitPoint(x: 0.5, y: 0.58),
                 endPoint: .bottom
@@ -122,16 +127,20 @@ struct RegularGlassWidget: View {
     }
 
     private var bottomCaption: some View {
-        ZStack(alignment: .bottom) {
+        let palette = settings.albumPalette
+        let brightCover = palette.dominant.relativeLuminance > 0.46
+
+        return ZStack(alignment: .bottom) {
             LinearGradient(
                 colors: [
                     Color.clear,
-                    Color(red: 0.50, green: 0.25, blue: 0.49).opacity(0.74),
-                    Color(red: 0.47, green: 0.24, blue: 0.47).opacity(0.88)
+                    palette.vibrant.color.opacity(brightCover ? 0.50 : 0.42),
+                    palette.shadow.color.opacity(brightCover ? 0.86 : 0.72)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             )
+            .overlay(Color.black.opacity(brightCover ? 0.14 : 0.06))
 
             VStack(spacing: 5) {
                 Text(primaryLine)
@@ -157,7 +166,7 @@ struct RegularGlassWidget: View {
     }
 
     private var secondaryLine: String {
-        if nowPlaying.track.isEmpty { return "Please play music on Spotify or Music" }
+        if nowPlaying.track.isEmpty { return "Drop a track here or connect a source." }
         return nowPlaying.track.artist.isEmpty ? nowPlaying.track.source.displayName : nowPlaying.track.artist
     }
 

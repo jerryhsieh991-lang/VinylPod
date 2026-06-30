@@ -25,7 +25,7 @@ struct LandscapeBackground: View {
 
         ZStack {
             if let url = settings.customBackgroundURL,
-               let image = NSImage(contentsOf: url) {
+               let image = CustomBackgroundCache.image(for: url) {
                 // User-supplied image: fill the frame, crop the overflow.
                 Image(nsImage: image)
                     .resizable()
@@ -208,5 +208,28 @@ private extension Array {
     /// Safe index access used while reading peak heights.
     subscript(safe index: Int) -> Element? {
         indices.contains(index) ? self[index] : nil
+    }
+}
+
+// MARK: - Custom background decode cache
+
+/// Caches the decoded user-supplied background `NSImage` keyed by its URL.
+///
+/// `LandscapeBackground.body` re-evaluates on every real track change (it reads
+/// `settings.albumPalette`). Without this cache, `NSImage(contentsOf:)` would
+/// re-read and re-decode the full user image from disk on the main thread on
+/// every track change. We hold a single (url, image) pair: stable while the
+/// chosen background is unchanged, and refreshed only when the URL changes.
+@MainActor
+private enum CustomBackgroundCache {
+    private static var cachedURL: URL?
+    private static var cachedImage: NSImage?
+
+    static func image(for url: URL) -> NSImage? {
+        if cachedURL == url { return cachedImage }
+        let image = NSImage(contentsOf: url)
+        cachedURL = url
+        cachedImage = image
+        return image
     }
 }

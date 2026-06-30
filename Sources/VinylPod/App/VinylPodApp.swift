@@ -112,7 +112,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     DynamicIslandWidget(
                         onExpansionChange: onExpansionChange,
                         onSelectSize: { mode in
-                            env.settings.windowMode = mode
                             WindowCoordinator.shared.manager?.apply(mode: mode)
                         },
                         onQuit: { NSApp.terminate(nil) }
@@ -199,11 +198,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let all = WindowMode.allCases
             if let i = all.firstIndex(of: env.settings.windowMode) {
                 let next = all[(i + 1) % all.count]
-                env.settings.windowMode = next
                 wm?.apply(mode: next)
             }
         case .displayFullscreen:
-            env.settings.windowMode = .desktopWidget
             wm?.apply(mode: .desktopWidget)
         case .windowTopBottom:
             let next: DesktopLayer = env.settings.desktopLayer == .front ? .back : .front
@@ -235,8 +232,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                   let digit = chars.first else { return event }
 
             if let mode = WindowMode.allCases.first(where: { $0.shortcutKey == digit }) {
-                let env = AppEnvironment.shared
-                env.settings.windowMode = mode
                 WindowCoordinator.shared.manager?.apply(mode: mode)
                 return nil // Consume the event — we handled it.
             }

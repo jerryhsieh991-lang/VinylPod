@@ -35,7 +35,7 @@ struct LargeGlassWidget: View {
                 transportControls
                 Spacer().frame(height: 6)
                 if settings.showProgress {
-                    progressStrip
+                    LargeProgressStrip()
                         .padding(.horizontal, 22)
                 }
             }
@@ -156,9 +156,48 @@ struct LargeGlassWidget: View {
         }
     }
 
-    private var progressStrip: some View {
-        HStack(spacing: 6) {
-            Text(nowPlaying.track.isEmpty ? "00:00" : Self.timeString(nowPlaying.position))
+    private var primaryLine: String {
+        if nowPlaying.track.isEmpty { return "Music is stopped." }
+        return nowPlaying.track.title.isEmpty ? "Unknown Title" : nowPlaying.track.title
+    }
+
+    private var secondaryLine: String {
+        if nowPlaying.track.isEmpty { return "Drop a track here or connect a source." }
+        return nowPlaying.track.artist.isEmpty ? nowPlaying.track.source.displayName : nowPlaying.track.artist
+    }
+
+    private func controlButton(_ symbol: String, size: CGFloat, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: size, weight: .heavy))
+                .foregroundStyle(Color.white.opacity(0.98))
+                .shadow(color: .black.opacity(0.20), radius: 4, x: 0, y: 2)
+                .frame(width: 30, height: 34)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Progress strip for the Large widget — the ONLY part that reads `position`.
+///
+/// Isolated into a leaf and coarsened to whole-second `Int`s so a playback tick
+/// (~10×/sec) re-renders only this small view at most 1×/sec, rather than
+/// re-running `LargeGlassWidget.body` (and its expensive glass background +
+/// vinyl deck) every tick. No `.animation(_:value:)` on the changing value.
+private struct LargeProgressStrip: View {
+    @EnvironmentObject private var nowPlaying: NowPlayingService
+
+    var body: some View {
+        let isEmpty = nowPlaying.track.isEmpty
+        let elapsed = isEmpty ? 0 : Int(nowPlaying.position)
+        let total = Int(nowPlaying.duration)
+        let remaining = max(total - elapsed, 0)
+        let fraction: CGFloat = total > 0
+            ? CGFloat(min(max(Double(elapsed) / Double(total), 0), 1))
+            : 0
+
+        return HStack(spacing: 6) {
+            Text(isEmpty ? "00:00" : Self.timeString(TimeInterval(elapsed)))
                 .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(Color.white.opacity(0.92))
                 .lineLimit(1)
@@ -171,43 +210,17 @@ struct LargeGlassWidget: View {
                     .frame(height: 3)
                 Capsule()
                     .fill(Color.white.opacity(0.94))
-                    .frame(width: max(3, 198 * progressFraction), height: 3)
+                    .frame(width: max(3, 198 * fraction), height: 3)
             }
             .frame(width: 198, height: 5)
 
-            Text(nowPlaying.track.isEmpty ? "-00:00" : Self.timeString(max(nowPlaying.duration - nowPlaying.position, 0)))
+            Text(isEmpty ? "-00:00" : "-" + Self.timeString(TimeInterval(remaining)))
                 .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(Color.white.opacity(0.84))
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
                 .frame(width: 40, alignment: .trailing)
         }
-    }
-
-    private var primaryLine: String {
-        if nowPlaying.track.isEmpty { return "Music is stopped." }
-        return nowPlaying.track.title.isEmpty ? "Unknown Title" : nowPlaying.track.title
-    }
-
-    private var secondaryLine: String {
-        if nowPlaying.track.isEmpty { return "Please play music on Spotify or Music" }
-        return nowPlaying.track.artist.isEmpty ? nowPlaying.track.source.displayName : nowPlaying.track.artist
-    }
-
-    private var progressFraction: CGFloat {
-        guard nowPlaying.duration > 0 else { return 0.0 }
-        return CGFloat(min(max(nowPlaying.position / nowPlaying.duration, 0), 1))
-    }
-
-    private func controlButton(_ symbol: String, size: CGFloat, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: size, weight: .heavy))
-                .foregroundStyle(Color.white.opacity(0.98))
-                .shadow(color: .black.opacity(0.20), radius: 4, x: 0, y: 2)
-                .frame(width: 30, height: 34)
-        }
-        .buttonStyle(.plain)
     }
 
     private static func timeString(_ seconds: TimeInterval) -> String {

@@ -44,6 +44,15 @@ final class LocalAudioPlayer: NSObject, AudioPlaying {
         self.delegateBridge = bridge
     }
 
+    deinit {
+        // If we're torn down mid-playback the tick timer is still scheduled on
+        // RunLoop.main, which retains it — its `[weak self]` closure would then
+        // fire forever as a no-op instead of stopping. Invalidate it directly.
+        // (We can't call the @MainActor `stopTimer()` from a non-isolated deinit;
+        // invalidating the Timer reference is sufficient and thread-safe here.)
+        tickTimer?.invalidate()
+    }
+
     // MARK: AudioPlaying
 
     /// Decode `url` and arm the player without starting playback.
@@ -137,7 +146,7 @@ final class LocalAudioPlayer: NSObject, AudioPlaying {
     private final class DelegateBridge: NSObject, AVAudioPlayerDelegate {
         /// `@MainActor`-isolated handler: the bridge hops onto the main actor
         /// before invoking it, so the owner can touch its main-actor state.
-        private let onFinish: @MainActor () -> Void
+        nonisolated(unsafe) private let onFinish: @MainActor () -> Void
 
         init(onFinish: @escaping @MainActor () -> Void) {
             self.onFinish = onFinish

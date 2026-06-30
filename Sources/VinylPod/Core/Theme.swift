@@ -73,7 +73,32 @@ struct RGBColorToken: Equatable, Sendable {
         )
     }
 
-    func adjusted(saturation minSaturation: CGFloat? = nil, brightness minBrightness: CGFloat? = nil) -> RGBColorToken {
+    var chroma: Double {
+        max(red, green, blue) - min(red, green, blue)
+    }
+
+    var relativeLuminance: Double {
+        func channel(_ value: Double) -> Double {
+            value <= 0.03928 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * channel(red) + 0.7152 * channel(green) + 0.0722 * channel(blue)
+    }
+
+    func mixed(with other: RGBColorToken, amount: Double) -> RGBColorToken {
+        let t = min(max(amount, 0), 1)
+        return RGBColorToken(
+            red: red + (other.red - red) * t,
+            green: green + (other.green - green) * t,
+            blue: blue + (other.blue - blue) * t,
+            alpha: alpha + (other.alpha - alpha) * t
+        )
+    }
+
+    func adjusted(
+        saturation minSaturation: CGFloat? = nil,
+        brightness minBrightness: CGFloat? = nil,
+        maximumBrightness: CGFloat? = nil
+    ) -> RGBColorToken {
         var hue: CGFloat = 0
         var saturation: CGFloat = 0
         var brightness: CGFloat = 0
@@ -82,7 +107,8 @@ struct RGBColorToken: Equatable, Sendable {
             .getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
 
         let outputSaturation = minSaturation.map { max(saturation, $0) } ?? saturation
-        let outputBrightness = minBrightness.map { max(brightness, $0) } ?? brightness
+        let liftedBrightness = minBrightness.map { max(brightness, $0) } ?? brightness
+        let outputBrightness = maximumBrightness.map { min(liftedBrightness, $0) } ?? liftedBrightness
         let adjusted = NSColor(
             hue: hue,
             saturation: min(outputSaturation, 0.94),

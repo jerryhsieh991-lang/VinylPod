@@ -24,11 +24,11 @@ struct DynamicIslandWidget: View {
     @VPState private var expanded = false
     @VPState private var compactHovered = false
 
-    private let compactSize = CGSize(width: 390, height: 30)
-    private let expandedSize = CGSize(width: 430, height: 700)
-    private let expandedPanelSize = CGSize(width: 420, height: 650)
-    private let expandedPanelTopPadding: CGFloat = 42
-    private let islandAnimation = Animation.spring(response: 0.38, dampingFraction: 0.84, blendDuration: 0.08)
+    private let compactSize = CGSize(width: 326, height: 36)
+    private let expandedSize = CGSize(width: 402, height: 594)
+    private let expandedPanelSize = CGSize(width: 386, height: 536)
+    private let expandedPanelTopPadding: CGFloat = 48
+    private let islandAnimation = Animation.spring(response: 0.44, dampingFraction: 0.86, blendDuration: 0.10)
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -74,40 +74,40 @@ struct DynamicIslandWidget: View {
             SettingsMenuButton(
                 onSelectSize: onSelectSize,
                 onQuit: onQuit,
-                triggerSize: 22,
-                glyphSize: 11,
-                triggerFill: Color.white.opacity(compactHovered ? 0.18 : 0.12),
-                triggerStroke: Color.white.opacity(0.26),
+                triggerSize: 24,
+                glyphSize: 12,
+                triggerFill: Color.black.opacity(compactHovered ? 0.34 : 0.24),
+                triggerStroke: Color.white.opacity(compactHovered ? 0.34 : 0.26),
                 triggerForeground: Color.white.opacity(0.96)
             )
         }
-        .padding(.leading, 12)
-        .padding(.trailing, 6)
+        .padding(.leading, 10)
+        .padding(.trailing, 4)
         .frame(width: compactSize.width, height: compactSize.height)
-        .background(
+        .background(IslandCapsuleGlass(palette: settings.albumPalette, highlighted: compactHovered || expanded))
+        .overlay(
             Capsule(style: .continuous)
-                .fill(Color.black.opacity(0.24))
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(settings.accentColor.opacity(0.14))
-                        .blendMode(.softLight)
-                )
-                .background(
-                    VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
-                        .clipShape(Capsule(style: .continuous))
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(expanded ? 0.48 : 0.36),
+                            settings.albumPalette.vibrant.color.opacity(0.34),
+                            Color.white.opacity(0.12)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 0.8
                 )
         )
         .overlay(
             Capsule(style: .continuous)
-                .strokeBorder(Color.white.opacity(expanded ? 0.28 : 0.20), lineWidth: 0.8)
+                .trim(from: 0.05, to: 0.92)
+                .stroke(Color.white.opacity(compactHovered || expanded ? 0.34 : 0.18), lineWidth: 0.7)
+                .blur(radius: 0.15)
         )
-        .overlay(
-            Capsule(style: .continuous)
-                .trim(from: 0.04, to: 0.96)
-                .stroke(Color.white.opacity(compactHovered || expanded ? 0.26 : 0.14), lineWidth: 0.7)
-                .blur(radius: 0.2)
-        )
-        .shadow(color: .black.opacity(expanded ? 0.36 : 0.28), radius: expanded ? 18 : 14, x: 0, y: 6)
+        .shadow(color: settings.albumPalette.shadow.color.opacity(expanded ? 0.34 : 0.24), radius: expanded ? 18 : 12, x: 0, y: 7)
+        .shadow(color: .black.opacity(expanded ? 0.30 : 0.18), radius: expanded ? 20 : 12, x: 0, y: 8)
         .onHover { compactHovered = $0 }
     }
 
@@ -116,32 +116,39 @@ struct DynamicIslandWidget: View {
     private var expandedPanel: some View {
         ZStack(alignment: .top) {
             DynamicIslandBump()
-                .fill(Color.white.opacity(0.30))
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.42),
+                            settings.albumPalette.vibrant.color.opacity(0.24),
+                            settings.albumPalette.shadow.color.opacity(0.18)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
                 .frame(width: 58, height: 30)
-                .background(
-                    DynamicIslandBump()
-                        .fill(settings.accentColor.opacity(0.18))
-                        .blendMode(.softLight)
-                )
                 .offset(y: -13)
-                .shadow(color: .black.opacity(0.22), radius: 8, x: 0, y: 3)
+                .shadow(color: .black.opacity(0.22), radius: 9, x: 0, y: 4)
 
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .fill(Color.black.opacity(0.20))
-                .background(
-                    VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
-                        .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-                )
+            IslandPanelGlass(palette: settings.albumPalette, cornerRadius: 32)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .fill(settings.accentColor.opacity(0.16))
-                        .blendMode(.softLight)
+                    RoundedRectangle(cornerRadius: 32, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.58),
+                                    settings.albumPalette.vibrant.color.opacity(0.30),
+                                    Color.black.opacity(0.20)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.24), lineWidth: 0.9)
-                )
-                .shadow(color: .black.opacity(0.35), radius: 24, x: 0, y: 14)
+                .shadow(color: settings.albumPalette.shadow.color.opacity(0.35), radius: 28, x: 0, y: 15)
+                .shadow(color: .black.opacity(0.24), radius: 20, x: 0, y: 12)
 
             IslandExpandedContent(
                 panelSize: expandedPanelSize,
@@ -177,18 +184,30 @@ private struct IslandCompactContent: View {
     let hovered: Bool
 
     var body: some View {
-        HStack(spacing: 10) {
-            IslandArtwork(size: 22, cornerRadius: 6)
+        let snapshot = IslandPlaybackSnapshot(track: nowPlaying.track, isPlaying: nowPlaying.isPlaying)
+        IslandCompactMetadata(snapshot: snapshot, expanded: expanded, hovered: hovered)
+            .equatable()
+    }
+}
 
-            Text(compactTitle)
-                .font(.system(size: 15, weight: .semibold, design: .default))
+private struct IslandCompactMetadata: View, Equatable {
+    let snapshot: IslandPlaybackSnapshot
+    let expanded: Bool
+    let hovered: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            IslandArtwork(artwork: snapshot.artwork, size: 24, cornerRadius: 7)
+
+            Text(snapshot.compactTitle)
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
                 .foregroundStyle(Color.white.opacity(0.95))
                 .lineLimit(1)
-                .shadow(color: .black.opacity(0.22), radius: 1, y: 1)
+                .shadow(color: .black.opacity(0.24), radius: 1, y: 1)
 
             Spacer(minLength: 6)
 
-            EqualizerBars(active: nowPlaying.isPlaying, barColor: Color.white.opacity(0.68), compact: true)
+            EqualizerBars(active: snapshot.isPlaying, barColor: Color.white.opacity(0.68), compact: true)
                 .frame(width: 28, height: 16)
 
             Image(systemName: expanded ? "chevron.up" : "chevron.down")
@@ -197,20 +216,13 @@ private struct IslandCompactContent: View {
                 .frame(width: 10)
         }
     }
-
-    private var compactTitle: String {
-        if nowPlaying.track.isEmpty { return "VinylPod" }
-        let title = nowPlaying.track.title.isEmpty ? "Unknown Title" : nowPlaying.track.title
-        let artist = nowPlaying.track.artist
-        return artist.isEmpty ? title : "\(artist) • \(title)"
-    }
 }
 
 // MARK: - Expanded content (NowPlayingService observer)
 
-/// Full expanded panel interior. Observes `NowPlayingService` for artwork,
-/// title and transport, but the per-tick `position` is isolated further down in
-/// `IslandTimeRow` so the artwork/title block here does not re-render on ticks.
+/// Full expanded panel interior. It snapshots track/play state for equatable
+/// metadata/control leaves, while the per-tick `position` stays isolated in
+/// `IslandTimeRow`.
 private struct IslandExpandedContent: View {
     @EnvironmentObject private var nowPlaying: NowPlayingService
 
@@ -219,84 +231,233 @@ private struct IslandExpandedContent: View {
     var onQuit: () -> Void
 
     var body: some View {
+        let snapshot = IslandPlaybackSnapshot(track: nowPlaying.track, isPlaying: nowPlaying.isPlaying)
+
         ZStack(alignment: .topTrailing) {
-            VStack(spacing: 0) {
-                IslandArtwork(size: 370, cornerRadius: 18)
-                    .padding(.top, 38)
+            IslandExpandedMetadata(snapshot: snapshot, panelSize: panelSize)
+                .equatable()
 
-                Spacer().frame(height: 34)
-
-                Text(primaryLine)
-                    .font(.system(size: 31, weight: .semibold, design: .default))
-                    .foregroundStyle(Color.white.opacity(0.98))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-                    .frame(width: 360)
-                    .shadow(color: .black.opacity(0.22), radius: 2, y: 1)
-
-                Spacer().frame(height: 10)
-
-                Text(secondaryLine)
-                    .font(.system(size: 24, weight: .bold, design: .default))
-                    .foregroundStyle(Color.white.opacity(0.78))
-                    .lineLimit(1)
-                    .frame(width: 340)
-                    .shadow(color: .black.opacity(0.24), radius: 2, y: 1)
-
-                Spacer().frame(height: 28)
-
+            VStack(spacing: 22) {
+                Spacer().frame(height: 372)
                 IslandTimeRow()
-
-                Spacer().frame(height: 24)
-
-                HStack(spacing: 44) {
-                    islandControl("backward.end.fill", size: 38) { nowPlaying.previous() }
-                    islandControl(nowPlaying.isPlaying ? "pause.fill" : "play.fill", size: 46) { nowPlaying.playPause() }
-                    islandControl("forward.end.fill", size: 38) { nowPlaying.next() }
-                }
-
+                IslandTransportControls(
+                    isPlaying: snapshot.isPlaying,
+                    onPrevious: { nowPlaying.previous() },
+                    onPlayPause: { nowPlaying.playPause() },
+                    onNext: { nowPlaying.next() }
+                )
+                .equatable()
                 Spacer(minLength: 0)
             }
             .frame(width: panelSize.width, height: panelSize.height)
 
-            EqualizerBars(active: nowPlaying.isPlaying, barColor: Color.white.opacity(0.46), compact: false)
-                .frame(width: 58, height: 62)
-                .padding(.top, 516)
+            EqualizerBars(active: snapshot.isPlaying, barColor: Color.white.opacity(0.46), compact: false)
+                .frame(width: 44, height: 46)
+                .padding(.top, 424)
                 .padding(.trailing, 28)
 
             SettingsMenuButton(
                 onSelectSize: onSelectSize,
                 onQuit: onQuit,
-                triggerSize: 28,
-                glyphSize: 13,
-                triggerFill: Color.white.opacity(0.16),
-                triggerStroke: Color.white.opacity(0.24),
+                triggerSize: 30,
+                glyphSize: 14,
+                triggerFill: Color.black.opacity(0.28),
+                triggerStroke: Color.white.opacity(0.34),
                 triggerForeground: Color.white.opacity(0.96)
             )
-            .padding(.top, 18)
-            .padding(.trailing, 18)
+            .padding(.top, 16)
+            .padding(.trailing, 16)
+        }
+    }
+}
+
+private struct IslandPlaybackSnapshot: Equatable {
+    let primaryLine: String
+    let secondaryLine: String
+    let compactTitle: String
+    let sourceName: String
+    let sourceSymbol: String
+    let isEmpty: Bool
+    let isPlaying: Bool
+    let artwork: NSImage?
+
+    private let artworkID: ObjectIdentifier?
+
+    init(track: Track, isPlaying: Bool) {
+        isEmpty = track.isEmpty
+        self.isPlaying = isPlaying
+        artwork = track.artwork
+        artworkID = track.artwork.map { ObjectIdentifier($0) }
+        sourceName = track.source.displayName
+        sourceSymbol = track.source.sfSymbol
+
+        if track.isEmpty {
+            primaryLine = "Music is stopped."
+            secondaryLine = "Drop a track or connect a source."
+            compactTitle = "VinylPod"
+        } else {
+            let title = track.title.isEmpty ? "Unknown Title" : track.title
+            let artist = track.artist
+            primaryLine = title
+            secondaryLine = artist.isEmpty ? track.source.displayName : artist
+            compactTitle = artist.isEmpty ? title : "\(artist) • \(title)"
         }
     }
 
-    private var primaryLine: String {
-        if nowPlaying.track.isEmpty { return "Music is stopped." }
-        return nowPlaying.track.title.isEmpty ? "Unknown Title" : nowPlaying.track.title
+    static func == (lhs: IslandPlaybackSnapshot, rhs: IslandPlaybackSnapshot) -> Bool {
+        lhs.primaryLine == rhs.primaryLine
+            && lhs.secondaryLine == rhs.secondaryLine
+            && lhs.compactTitle == rhs.compactTitle
+            && lhs.sourceName == rhs.sourceName
+            && lhs.sourceSymbol == rhs.sourceSymbol
+            && lhs.isEmpty == rhs.isEmpty
+            && lhs.isPlaying == rhs.isPlaying
+            && lhs.artworkID == rhs.artworkID
+    }
+}
+
+private struct IslandExpandedMetadata: View, Equatable {
+    let snapshot: IslandPlaybackSnapshot
+    let panelSize: CGSize
+
+    var body: some View {
+        VStack(spacing: 0) {
+            IslandSourceChip(snapshot: snapshot)
+                .padding(.top, 24)
+
+            IslandArtwork(artwork: snapshot.artwork, size: 238, cornerRadius: 26)
+                .padding(.top, 18)
+
+            Spacer().frame(height: 22)
+
+            VStack(spacing: 8) {
+                Text(snapshot.primaryLine)
+                    .font(.system(size: 28, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.98))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.70)
+                    .frame(width: 320)
+                    .shadow(color: .black.opacity(0.24), radius: 2, y: 1)
+
+                Text(snapshot.secondaryLine)
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.70))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+                    .frame(width: 292)
+                    .shadow(color: .black.opacity(0.24), radius: 2, y: 1)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .frame(width: panelSize.width, height: panelSize.height)
+    }
+}
+
+private struct IslandSourceChip: View, Equatable {
+    let snapshot: IslandPlaybackSnapshot
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(snapshot.isPlaying ? Color.green.opacity(0.92) : Color.white.opacity(0.34))
+                .frame(width: 6, height: 6)
+                .shadow(color: snapshot.isPlaying ? Color.green.opacity(0.42) : Color.clear, radius: 4)
+
+            Image(systemName: snapshot.sourceSymbol)
+                .font(.system(size: 10, weight: .bold))
+
+            Text(snapshot.sourceName.uppercased())
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .tracking(0.9)
+        }
+        .foregroundStyle(Color.white.opacity(0.70))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            Capsule(style: .continuous)
+                .fill(Color.black.opacity(0.20))
+        )
+        .overlay(
+            Capsule(style: .continuous)
+                .strokeBorder(Color.white.opacity(0.14), lineWidth: 0.7)
+        )
+    }
+}
+
+private struct IslandTransportControls: View, Equatable {
+    let isPlaying: Bool
+    let onPrevious: () -> Void
+    let onPlayPause: () -> Void
+    let onNext: () -> Void
+
+    var body: some View {
+        HStack(spacing: 24) {
+            IslandControlButton(symbol: "backward.end.fill", diameter: 48, glyphSize: 22, action: onPrevious)
+            IslandControlButton(symbol: isPlaying ? "pause.fill" : "play.fill", diameter: 62, glyphSize: 28, filled: true, action: onPlayPause)
+            IslandControlButton(symbol: "forward.end.fill", diameter: 48, glyphSize: 22, action: onNext)
+        }
     }
 
-    private var secondaryLine: String {
-        if nowPlaying.track.isEmpty { return "Drop a track here or connect a source." }
-        return nowPlaying.track.artist.isEmpty ? nowPlaying.track.source.displayName : nowPlaying.track.artist
+    static func == (lhs: IslandTransportControls, rhs: IslandTransportControls) -> Bool {
+        lhs.isPlaying == rhs.isPlaying
     }
+}
 
-    private func islandControl(_ symbol: String, size: CGFloat, action: @escaping () -> Void) -> some View {
+private struct IslandControlButton: View {
+    @EnvironmentObject private var settings: AppSettings
+
+    let symbol: String
+    let diameter: CGFloat
+    let glyphSize: CGFloat
+    var filled = false
+    let action: () -> Void
+
+    @VPState private var hovered = false
+
+    var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: size, weight: .bold))
+                .font(.system(size: glyphSize, weight: .bold))
                 .foregroundStyle(Color.white.opacity(0.96))
-                .frame(width: 52, height: 52)
-                .contentShape(Rectangle())
+                .frame(width: diameter, height: diameter)
+                .background(buttonBackground)
+                .overlay(
+                    Circle()
+                        .strokeBorder(Color.white.opacity(hovered ? 0.30 : 0.18), lineWidth: 0.8)
+                )
+                .scaleEffect(hovered ? 1.045 : 1.0)
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        .onHover { hovered = $0 }
+        .animation(.spring(response: 0.22, dampingFraction: 0.74), value: hovered)
+    }
+
+    private var buttonBackground: some View {
+        Circle()
+            .fill(
+                LinearGradient(
+                    colors: filled
+                        ? [
+                            Color.white.opacity(0.28),
+                            settings.albumPalette.vibrant.color.opacity(0.42),
+                            Color.black.opacity(0.22)
+                        ]
+                        : [
+                            Color.white.opacity(hovered ? 0.16 : 0.10),
+                            Color.black.opacity(0.18)
+                        ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .shadow(
+                color: filled ? settings.albumPalette.vibrant.color.opacity(0.26) : .black.opacity(0.18),
+                radius: filled ? 12 : 8,
+                x: 0,
+                y: filled ? 6 : 4
+            )
     }
 }
 
@@ -312,6 +473,7 @@ private struct IslandExpandedContent: View {
 /// to the continuously-changing value.
 private struct IslandTimeRow: View {
     @EnvironmentObject private var nowPlaying: NowPlayingService
+    @EnvironmentObject private var settings: AppSettings
 
     var body: some View {
         // Reading these coarsened values (whole-second Ints) — instead of the
@@ -328,7 +490,7 @@ private struct IslandTimeRow: View {
             progressBar(fraction: fraction)
             Text(nowPlaying.track.isEmpty ? "-00:00" : "-" + ProgressBarView.timeString(TimeInterval(remaining)))
         }
-        .font(.system(size: 20, weight: .bold, design: .default))
+        .font(.system(size: 15, weight: .semibold, design: .rounded))
         .foregroundStyle(Color.white.opacity(0.92))
         .monospacedDigit()
     }
@@ -338,31 +500,176 @@ private struct IslandTimeRow: View {
             let width = geo.size.width
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color.white.opacity(0.28))
-                    .frame(height: 5)
+                    .fill(Color.white.opacity(0.18))
+                    .frame(height: 6)
                 Capsule()
-                    .fill(Color.white.opacity(0.92))
-                    .frame(width: max(4, width * fraction), height: 5)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.96),
+                                settings.albumPalette.vibrant.color.opacity(0.92)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: max(6, width * fraction), height: 6)
+                    .shadow(color: settings.albumPalette.vibrant.color.opacity(0.30), radius: 5, x: 0, y: 0)
             }
             .frame(maxHeight: .infinity, alignment: .center)
         }
-        .frame(width: 220, height: 14)
+        .frame(width: 212, height: 14)
     }
 }
 
-// MARK: - Shared artwork (NowPlayingService observer)
+private struct IslandCapsuleGlass: View, Equatable {
+    let palette: AlbumColorPalette
+    let highlighted: Bool
 
-/// Album artwork tile. Observes `NowPlayingService` but reads only
-/// `track.artwork`, so it is invalidated only on a real track change.
-private struct IslandArtwork: View {
-    @EnvironmentObject private var nowPlaying: NowPlayingService
+    var body: some View {
+        let dominant = palette.dominant.color
+        let vibrant = palette.vibrant.color
+        let muted = palette.muted.color
+        let shadow = palette.shadow.color
 
-    let size: CGFloat
+        return ZStack {
+            VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
+                .clipShape(Capsule(style: .continuous))
+
+            Capsule(style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(highlighted ? 0.18 : 0.12),
+                            vibrant.opacity(0.20),
+                            shadow.opacity(0.24)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            Capsule(style: .continuous)
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            muted.opacity(highlighted ? 0.34 : 0.24),
+                            dominant.opacity(highlighted ? 0.22 : 0.16),
+                            .clear
+                        ],
+                        center: UnitPoint(x: 0.16, y: 0.04),
+                        startRadius: 2,
+                        endRadius: 150
+                    )
+                )
+                .blendMode(.overlay)
+
+            Capsule(style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(highlighted ? 0.26 : 0.18),
+                            .clear,
+                            Color.black.opacity(0.18)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .blendMode(.screen)
+        }
+        .compositingGroup()
+    }
+}
+
+private struct IslandPanelGlass: View, Equatable {
+    let palette: AlbumColorPalette
     let cornerRadius: CGFloat
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        let dominant = palette.dominant.color
+        let vibrant = palette.vibrant.color
+        let muted = palette.muted.color
+        let shadow = palette.shadow.color
+        let isBrightArtwork = palette.dominant.relativeLuminance > 0.46
+        let isDarkArtwork = palette.dominant.relativeLuminance < 0.16
+
+        return ZStack {
+            VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
+                .clipShape(shape)
+
+            shape.fill(
+                LinearGradient(
+                    colors: [
+                        vibrant.opacity(isBrightArtwork ? 0.28 : 0.36),
+                        dominant.opacity(0.26),
+                        shadow.opacity(isDarkArtwork ? 0.38 : 0.30)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+
+            shape.fill(
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(isDarkArtwork ? 0.18 : 0.24),
+                        muted.opacity(0.12),
+                        Color.black.opacity(isBrightArtwork ? 0.30 : 0.22)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+
+            RadialGradient(
+                colors: [
+                    vibrant.opacity(isDarkArtwork ? 0.50 : 0.38),
+                    dominant.opacity(0.18),
+                    .clear
+                ],
+                center: UnitPoint(x: 0.16, y: 0.04),
+                startRadius: 6,
+                endRadius: 260
+            )
+            .clipShape(shape)
+            .blendMode(.overlay)
+
+            shape.fill(
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(isDarkArtwork ? 0.54 : 0.42),
+                        Color.white.opacity(0.08),
+                        .clear
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .blendMode(.screen)
+            .allowsHitTesting(false)
+        }
+        .compositingGroup()
+    }
+}
+
+// MARK: - Shared artwork
+
+/// Album artwork tile. It takes a value snapshot so playback-position ticks
+/// cannot invalidate the expensive image rendering path.
+private struct IslandArtwork: View, Equatable {
+    let artwork: NSImage?
+    let size: CGFloat
+    let cornerRadius: CGFloat
+
+    private var artworkID: ObjectIdentifier? {
+        artwork.map { ObjectIdentifier($0) }
+    }
+
+    var body: some View {
         Group {
-            if let art = nowPlaying.track.artwork {
+            if let art = artwork {
                 Image(nsImage: art)
                     .resizable()
                     .scaledToFill()
@@ -377,6 +684,12 @@ private struct IslandArtwork: View {
                 .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.8)
         )
         .shadow(color: .black.opacity(0.22), radius: 12, x: 0, y: 6)
+    }
+
+    static func == (lhs: IslandArtwork, rhs: IslandArtwork) -> Bool {
+        lhs.artworkID == rhs.artworkID
+            && lhs.size == rhs.size
+            && lhs.cornerRadius == rhs.cornerRadius
     }
 }
 
