@@ -89,11 +89,18 @@ final class NowPlayingService: ObservableObject {
 
     /// Push state coming from an external source (browser / Spotify / Apple Music).
     func updateFromExternal(_ t: Track, isPlaying playing: Bool, position pos: TimeInterval, duration dur: TimeInterval) {
-        track = t
-        isPlaying = playing
+        // The browser bridge pushes ~1×/sec (on every currentTime tick). React
+        // to a REAL track change ONLY: re-assigning `track` and firing
+        // onTrackChanged every second re-ran dominant-color extraction and
+        // re-triggered the glass/landscape liquid animation at 60fps — a
+        // self-sustaining 98%-CPU render loop. Position is the one field that
+        // legitimately updates each tick.
+        let trackChanged = (t != track)
+        if trackChanged { track = t }
+        if isPlaying != playing { isPlaying = playing }
         position = pos
-        duration = dur
-        onTrackChanged?(t)
+        if duration != dur { duration = dur }
+        if trackChanged { onTrackChanged?(t) }
     }
 
     func playPause() {
@@ -244,6 +251,7 @@ final class AppSettings: ObservableObject {
 
     func setAlbumPalette(from palette: AlbumColorPalette?) {
         guard useAdaptiveAccent, let palette else {
+            guard albumPalette != .iceMountain else { return }   // no-op: skip
             withAnimation(VPTheme.liquid) {
                 albumPalette = .iceMountain
                 accentColor = VPTheme.accentFallback
@@ -251,6 +259,10 @@ final class AppSettings: ObservableObject {
             return
         }
 
+        // Defense-in-depth: never re-assign an EQUAL palette. Otherwise the
+        // `.animation(value: albumPalette)` on the glass + landscape re-fires and
+        // re-renders those expensive views at 60fps for an unchanged cover.
+        guard palette != albumPalette else { return }
         withAnimation(VPTheme.liquid) {
             albumPalette = palette
             accentColor = palette.vibrant.color
