@@ -10,22 +10,38 @@ struct DynamicIslandWidget: View {
     var onSelectSize: (WindowMode) -> Void
     var onQuit: () -> Void
 
-    @EnvironmentObject private var nowPlaying: NowPlayingService
+    // NOTE: `nowPlaying` is intentionally NOT observed at this level. The island
+    // is always on screen while the notch is enabled, and `NowPlayingService`
+    // republishes `position` every playback tick (~10×/sec local, ~1×/sec
+    // bridge). If the top-level body observed it, the whole panel — and, while
+    // expanded, the progress/time region — would re-render every tick, which a
+    // `sample` traced as a self-sustaining `GraphHost.updatePreferences` loop.
+    // All `nowPlaying` reads now live in leaf subviews below, so a position tick
+    // can only touch the one tiny view that legitimately displays it (and that
+    // view coarsens position to whole seconds).
     @EnvironmentObject private var settings: AppSettings
 
     @VPState private var expanded = false
+    @VPState private var compactHovered = false
 
     private let compactSize = CGSize(width: 390, height: 30)
     private let expandedSize = CGSize(width: 430, height: 700)
+    private let expandedPanelSize = CGSize(width: 420, height: 650)
+    private let expandedPanelTopPadding: CGFloat = 42
+    private let islandAnimation = Animation.spring(response: 0.38, dampingFraction: 0.84, blendDuration: 0.08)
 
     var body: some View {
         ZStack(alignment: .top) {
             if expanded {
                 expandedPanel
-                    .padding(.top, 42)
+                    .padding(.top, expandedPanelTopPadding)
                     .transition(.asymmetric(
-                        insertion: .move(edge: .top).combined(with: .scale(scale: 0.92, anchor: .top)).combined(with: .opacity),
-                        removal: .move(edge: .top).combined(with: .scale(scale: 0.96, anchor: .top)).combined(with: .opacity)
+                        insertion: .offset(y: -18)
+                            .combined(with: .scale(scale: 0.965, anchor: .top))
+                            .combined(with: .opacity),
+                        removal: .offset(y: -10)
+                            .combined(with: .scale(scale: 0.985, anchor: .top))
+                            .combined(with: .opacity)
                     ))
                     .zIndex(1)
             }
@@ -39,7 +55,7 @@ struct DynamicIslandWidget: View {
             height: expanded ? expandedSize.height : compactSize.height,
             alignment: .top
         )
-        .animation(.spring(response: 0.34, dampingFraction: 0.82), value: expanded)
+        .animation(islandAnimation, value: expanded)
     }
 
     // MARK: - Compact island
@@ -49,31 +65,19 @@ struct DynamicIslandWidget: View {
             Button {
                 toggleExpanded()
             } label: {
-                HStack(spacing: 10) {
-                    artwork(size: 22, cornerRadius: 6)
-
-                    Text(compactTitle)
-                        .font(.system(size: 15, weight: .semibold, design: .default))
-                        .foregroundStyle(Color.white.opacity(0.95))
-                        .lineLimit(1)
-                        .shadow(color: .black.opacity(0.22), radius: 1, y: 1)
-
-                    Spacer(minLength: 6)
-
-                    EqualizerBars(active: nowPlaying.isPlaying, barColor: Color.white.opacity(0.68), compact: true)
-                        .frame(width: 28, height: 16)
-                }
-                .contentShape(Rectangle())
+                IslandCompactContent(expanded: expanded, hovered: compactHovered)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(expanded ? "Collapse Dynamic Island" : "Expand Dynamic Island")
 
             SettingsMenuButton(
                 onSelectSize: onSelectSize,
                 onQuit: onQuit,
-                triggerSize: 20,
-                glyphSize: 10,
-                triggerFill: Color.white.opacity(0.12),
-                triggerStroke: Color.white.opacity(0.24),
+                triggerSize: 22,
+                glyphSize: 11,
+                triggerFill: Color.white.opacity(compactHovered ? 0.18 : 0.12),
+                triggerStroke: Color.white.opacity(0.26),
                 triggerForeground: Color.white.opacity(0.96)
             )
         }
@@ -94,10 +98,17 @@ struct DynamicIslandWidget: View {
                 )
         )
         .overlay(
-                Capsule(style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.20), lineWidth: 0.8)
+            Capsule(style: .continuous)
+                .strokeBorder(Color.white.opacity(expanded ? 0.28 : 0.20), lineWidth: 0.8)
         )
-        .shadow(color: .black.opacity(0.28), radius: 14, x: 0, y: 6)
+        .overlay(
+            Capsule(style: .continuous)
+                .trim(from: 0.04, to: 0.96)
+                .stroke(Color.white.opacity(compactHovered || expanded ? 0.26 : 0.14), lineWidth: 0.7)
+                .blur(radius: 0.2)
+        )
+        .shadow(color: .black.opacity(expanded ? 0.36 : 0.28), radius: expanded ? 18 : 14, x: 0, y: 6)
+        .onHover { compactHovered = $0 }
     }
 
     // MARK: - Expanded island
@@ -105,11 +116,11 @@ struct DynamicIslandWidget: View {
     private var expandedPanel: some View {
         ZStack(alignment: .top) {
             DynamicIslandBump()
-                .fill(Color.white.opacity(0.36))
+                .fill(Color.white.opacity(0.30))
                 .frame(width: 58, height: 30)
                 .background(
                     DynamicIslandBump()
-                        .fill(settings.accentColor.opacity(0.16))
+                        .fill(settings.accentColor.opacity(0.18))
                         .blendMode(.softLight)
                 )
                 .offset(y: -13)
@@ -132,15 +143,85 @@ struct DynamicIslandWidget: View {
                 )
                 .shadow(color: .black.opacity(0.35), radius: 24, x: 0, y: 14)
 
-            expandedContent
+            IslandExpandedContent(
+                panelSize: expandedPanelSize,
+                onSelectSize: onSelectSize,
+                onQuit: onQuit
+            )
         }
-        .frame(width: 420, height: 650)
+        .frame(width: expandedPanelSize.width, height: expandedPanelSize.height)
+        .compositingGroup()
     }
 
-    private var expandedContent: some View {
+    private func toggleExpanded() {
+        let next = !expanded
+        onExpansionChange(next)
+        withAnimation(islandAnimation) {
+            expanded = next
+        }
+    }
+}
+
+// MARK: - Compact content (NowPlayingService observer, no position read)
+
+/// Artwork + title + equalizer + chevron for the collapsed pill.
+///
+/// This is the resting-state surface. It observes `NowPlayingService` but reads
+/// only `track` / `isPlaying` — never `position` — so a playback tick re-runs
+/// this small body with identical leaf content and produces no graph churn. The
+/// equalizer is independently paused via `active`.
+private struct IslandCompactContent: View {
+    @EnvironmentObject private var nowPlaying: NowPlayingService
+
+    let expanded: Bool
+    let hovered: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            IslandArtwork(size: 22, cornerRadius: 6)
+
+            Text(compactTitle)
+                .font(.system(size: 15, weight: .semibold, design: .default))
+                .foregroundStyle(Color.white.opacity(0.95))
+                .lineLimit(1)
+                .shadow(color: .black.opacity(0.22), radius: 1, y: 1)
+
+            Spacer(minLength: 6)
+
+            EqualizerBars(active: nowPlaying.isPlaying, barColor: Color.white.opacity(0.68), compact: true)
+                .frame(width: 28, height: 16)
+
+            Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(Color.white.opacity(hovered || expanded ? 0.88 : 0.48))
+                .frame(width: 10)
+        }
+    }
+
+    private var compactTitle: String {
+        if nowPlaying.track.isEmpty { return "VinylPod" }
+        let title = nowPlaying.track.title.isEmpty ? "Unknown Title" : nowPlaying.track.title
+        let artist = nowPlaying.track.artist
+        return artist.isEmpty ? title : "\(artist) • \(title)"
+    }
+}
+
+// MARK: - Expanded content (NowPlayingService observer)
+
+/// Full expanded panel interior. Observes `NowPlayingService` for artwork,
+/// title and transport, but the per-tick `position` is isolated further down in
+/// `IslandTimeRow` so the artwork/title block here does not re-render on ticks.
+private struct IslandExpandedContent: View {
+    @EnvironmentObject private var nowPlaying: NowPlayingService
+
+    let panelSize: CGSize
+    var onSelectSize: (WindowMode) -> Void
+    var onQuit: () -> Void
+
+    var body: some View {
         ZStack(alignment: .topTrailing) {
             VStack(spacing: 0) {
-                artwork(size: 370, cornerRadius: 18)
+                IslandArtwork(size: 370, cornerRadius: 18)
                     .padding(.top, 38)
 
                 Spacer().frame(height: 34)
@@ -157,20 +238,14 @@ struct DynamicIslandWidget: View {
 
                 Text(secondaryLine)
                     .font(.system(size: 24, weight: .bold, design: .default))
-                    .foregroundStyle(Color.black.opacity(0.54))
+                    .foregroundStyle(Color.white.opacity(0.78))
                     .lineLimit(1)
                     .frame(width: 340)
+                    .shadow(color: .black.opacity(0.24), radius: 2, y: 1)
 
                 Spacer().frame(height: 28)
 
-                HStack(spacing: 12) {
-                    Text(elapsedText)
-                    islandProgress
-                    Text(remainingText)
-                }
-                .font(.system(size: 20, weight: .bold, design: .default))
-                .foregroundStyle(Color.white.opacity(0.92))
-                .monospacedDigit()
+                IslandTimeRow()
 
                 Spacer().frame(height: 24)
 
@@ -182,7 +257,7 @@ struct DynamicIslandWidget: View {
 
                 Spacer(minLength: 0)
             }
-            .frame(width: 420, height: 650)
+            .frame(width: panelSize.width, height: panelSize.height)
 
             EqualizerBars(active: nowPlaying.isPlaying, barColor: Color.white.opacity(0.46), compact: false)
                 .frame(width: 58, height: 62)
@@ -203,7 +278,62 @@ struct DynamicIslandWidget: View {
         }
     }
 
-    private var islandProgress: some View {
+    private var primaryLine: String {
+        if nowPlaying.track.isEmpty { return "Music is stopped." }
+        return nowPlaying.track.title.isEmpty ? "Unknown Title" : nowPlaying.track.title
+    }
+
+    private var secondaryLine: String {
+        if nowPlaying.track.isEmpty { return "Drop a track here or connect a source." }
+        return nowPlaying.track.artist.isEmpty ? nowPlaying.track.source.displayName : nowPlaying.track.artist
+    }
+
+    private func islandControl(_ symbol: String, size: CGFloat, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: size, weight: .bold))
+                .foregroundStyle(Color.white.opacity(0.96))
+                .frame(width: 52, height: 52)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Time + progress row (the ONLY view that reads `position`)
+
+/// Elapsed / remaining labels and the progress bar.
+///
+/// `position` is republished every tick, but the display only changes at
+/// whole-second granularity. The body keys off `secondTick` (an `Int` derived
+/// from `position`) rather than `position` itself, so SwiftUI coalesces the
+/// sub-second republishes: this view invalidates at most once per second during
+/// playback and never while paused/idle. No `.animation(_:value:)` is attached
+/// to the continuously-changing value.
+private struct IslandTimeRow: View {
+    @EnvironmentObject private var nowPlaying: NowPlayingService
+
+    var body: some View {
+        // Reading these coarsened values (whole-second Ints) — instead of the
+        // raw `position` Double — is what gates re-renders to 1×/sec.
+        let elapsed = nowPlaying.track.isEmpty ? 0 : Int(nowPlaying.position)
+        let total = Int(nowPlaying.duration)
+        let remaining = max(total - elapsed, 0)
+        let fraction: CGFloat = total > 0
+            ? CGFloat(min(max(Double(elapsed) / Double(total), 0), 1))
+            : 0
+
+        return HStack(spacing: 12) {
+            Text(nowPlaying.track.isEmpty ? "00:00" : ProgressBarView.timeString(TimeInterval(elapsed)))
+            progressBar(fraction: fraction)
+            Text(nowPlaying.track.isEmpty ? "-00:00" : "-" + ProgressBarView.timeString(TimeInterval(remaining)))
+        }
+        .font(.system(size: 20, weight: .bold, design: .default))
+        .foregroundStyle(Color.white.opacity(0.92))
+        .monospacedDigit()
+    }
+
+    private func progressBar(fraction: CGFloat) -> some View {
         GeometryReader { geo in
             let width = geo.size.width
             ZStack(alignment: .leading) {
@@ -212,16 +342,25 @@ struct DynamicIslandWidget: View {
                     .frame(height: 5)
                 Capsule()
                     .fill(Color.white.opacity(0.92))
-                    .frame(width: max(4, width * progressFraction), height: 5)
+                    .frame(width: max(4, width * fraction), height: 5)
             }
             .frame(maxHeight: .infinity, alignment: .center)
         }
         .frame(width: 220, height: 14)
     }
+}
 
-    // MARK: - Shared pieces
+// MARK: - Shared artwork (NowPlayingService observer)
 
-    private func artwork(size: CGFloat, cornerRadius: CGFloat) -> some View {
+/// Album artwork tile. Observes `NowPlayingService` but reads only
+/// `track.artwork`, so it is invalidated only on a real track change.
+private struct IslandArtwork: View {
+    @EnvironmentObject private var nowPlaying: NowPlayingService
+
+    let size: CGFloat
+    let cornerRadius: CGFloat
+
+    var body: some View {
         Group {
             if let art = nowPlaying.track.artwork {
                 Image(nsImage: art)
@@ -238,56 +377,6 @@ struct DynamicIslandWidget: View {
                 .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.8)
         )
         .shadow(color: .black.opacity(0.22), radius: 12, x: 0, y: 6)
-    }
-
-    private func islandControl(_ symbol: String, size: CGFloat, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: size, weight: .bold))
-                .foregroundStyle(Color.white.opacity(0.96))
-                .frame(width: 52, height: 52)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func toggleExpanded() {
-        let next = !expanded
-        onExpansionChange(next)
-        withAnimation(.spring(response: 0.34, dampingFraction: 0.82)) {
-            expanded = next
-        }
-    }
-
-    private var compactTitle: String {
-        if nowPlaying.track.isEmpty { return "VinylPod" }
-        let title = nowPlaying.track.title.isEmpty ? "Unknown Title" : nowPlaying.track.title
-        let artist = nowPlaying.track.artist
-        return artist.isEmpty ? title : "\(artist) • \(title)"
-    }
-
-    private var primaryLine: String {
-        if nowPlaying.track.isEmpty { return "Music is stopped." }
-        return nowPlaying.track.title.isEmpty ? "Unknown Title" : nowPlaying.track.title
-    }
-
-    private var secondaryLine: String {
-        if nowPlaying.track.isEmpty { return "Please play music on Spotify or Music" }
-        return nowPlaying.track.artist.isEmpty ? nowPlaying.track.source.displayName : nowPlaying.track.artist
-    }
-
-    private var elapsedText: String {
-        nowPlaying.track.isEmpty ? "00:00" : ProgressBarView.timeString(nowPlaying.position)
-    }
-
-    private var remainingText: String {
-        if nowPlaying.track.isEmpty { return "-00:00" }
-        return "-" + ProgressBarView.timeString(max(nowPlaying.duration - nowPlaying.position, 0))
-    }
-
-    private var progressFraction: CGFloat {
-        guard nowPlaying.duration > 0 else { return 0 }
-        return CGFloat(min(max(nowPlaying.position / nowPlaying.duration, 0), 1))
     }
 }
 

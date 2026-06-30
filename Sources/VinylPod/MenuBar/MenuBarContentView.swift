@@ -9,15 +9,20 @@ import SwiftUI
 /// `WindowCoordinator.shared.manager`.
 struct MenuBarContentView: View {
 
-    @EnvironmentObject var nowPlaying: NowPlayingService
+    // NOTE: `nowPlaying` is deliberately NOT observed here. `NowPlayingService`
+    // republishes `position` on every playback tick (~10×/sec local, ~1×/sec
+    // bridge). If this always-on menu surface observed it, the whole body —
+    // including the `WindowMode` Picker/ForEach — would re-diff every tick,
+    // which `sample` showed as `MainMenuItemHost.requestUpdate` →
+    // `ForEachState.update` churn. Only the small `NowPlayingMenuSection` child
+    // observes the service, so position ticks can't invalidate the picker.
     @EnvironmentObject var settings: AppSettings
 
     private var manager: WindowManager? { WindowCoordinator.shared.manager }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            nowPlayingHeader
-            transportRow
+            NowPlayingMenuSection()
             Divider()
             modePicker
             if settings.windowMode == .desktopWidget {
@@ -32,7 +37,84 @@ struct MenuBarContentView: View {
         .frame(width: 300)
     }
 
-    // MARK: - Now playing header
+    // MARK: - Window mode picker
+
+    private var modePicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Window Size")
+                .font(VPTheme.caption())
+                .foregroundStyle(VPTheme.textMuted)
+
+            Picker("Window Size", selection: modeBinding) {
+                ForEach(WindowMode.allCases) { mode in
+                    Text(mode.displayName).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+        }
+    }
+
+    /// Setting the mode updates persisted settings AND drives the WindowManager.
+    private var modeBinding: Binding<WindowMode> {
+        Binding(
+            get: { settings.windowMode },
+            set: { newMode in
+                manager?.apply(mode: newMode)
+            }
+        )
+    }
+
+    // MARK: - Desktop layer toggle (widget only)
+
+    private var desktopLayerToggle: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Desktop Layer")
+                .font(VPTheme.caption())
+                .foregroundStyle(VPTheme.textMuted)
+
+            Picker("Desktop Layer", selection: layerBinding) {
+                ForEach(DesktopLayer.allCases, id: \.self) { layer in
+                    Text(layer.displayName).tag(layer)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+        }
+    }
+
+    /// Setting the layer updates persisted settings AND drives the WindowManager.
+    private var layerBinding: Binding<DesktopLayer> {
+        Binding(
+            get: { settings.desktopLayer },
+            set: { newLayer in
+                settings.desktopLayer = newLayer
+                manager?.apply(desktopLayer: newLayer)
+            }
+        )
+    }
+}
+
+// MARK: - Now-playing section (the only `NowPlayingService` observer)
+
+/// Header (source chip + title/artist) and transport row.
+///
+/// This is the lone subview that observes `NowPlayingService`, so the
+/// high-frequency `position` republish is contained here and can never reach
+/// the parent's `WindowMode` picker. It reads only `track` / `isPlaying`; the
+/// per-tick `position` field is never touched, so a tick re-runs this tiny body
+/// with identical leaf content and no `ForEach` re-diff.
+private struct NowPlayingMenuSection: View {
+
+    @EnvironmentObject var nowPlaying: NowPlayingService
+    @EnvironmentObject var settings: AppSettings
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            nowPlayingHeader
+            transportRow
+        }
+    }
 
     private var nowPlayingHeader: some View {
         let track = nowPlaying.track
@@ -66,8 +148,6 @@ struct MenuBarContentView: View {
         }
     }
 
-    // MARK: - Transport
-
     private var transportRow: some View {
         HStack(spacing: 24) {
             Spacer()
@@ -86,63 +166,5 @@ struct MenuBarContentView: View {
         .buttonStyle(.plain)
         .foregroundStyle(settings.accentColor)
         .disabled(nowPlaying.track.isEmpty)
-    }
-
-    // MARK: - Window mode picker
-
-    private var modePicker: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Window Size")
-                .font(VPTheme.caption())
-                .foregroundStyle(VPTheme.textMuted)
-
-            Picker("Window Size", selection: modeBinding) {
-                ForEach(WindowMode.allCases) { mode in
-                    Text(mode.displayName).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-        }
-    }
-
-    /// Setting the mode updates persisted settings AND drives the WindowManager.
-    private var modeBinding: Binding<WindowMode> {
-        Binding(
-            get: { settings.windowMode },
-            set: { newMode in
-                settings.windowMode = newMode
-                manager?.apply(mode: newMode)
-            }
-        )
-    }
-
-    // MARK: - Desktop layer toggle (widget only)
-
-    private var desktopLayerToggle: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Desktop Layer")
-                .font(VPTheme.caption())
-                .foregroundStyle(VPTheme.textMuted)
-
-            Picker("Desktop Layer", selection: layerBinding) {
-                ForEach(DesktopLayer.allCases, id: \.self) { layer in
-                    Text(layer.displayName).tag(layer)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-        }
-    }
-
-    /// Setting the layer updates persisted settings AND drives the WindowManager.
-    private var layerBinding: Binding<DesktopLayer> {
-        Binding(
-            get: { settings.desktopLayer },
-            set: { newLayer in
-                settings.desktopLayer = newLayer
-                manager?.apply(desktopLayer: newLayer)
-            }
-        )
     }
 }

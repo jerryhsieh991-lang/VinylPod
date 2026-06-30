@@ -30,11 +30,13 @@ struct ModeContentView: View {
             // Static landscape behind every mode.
             LandscapeBackground()
 
-            // Mode-specific content.
+            // Mode-specific content. Each WindowMode maps to a DISTINCT widget
+            // view type in `content` (Small/Medium/Regular/Large/Desktop), so
+            // the branches already carry distinct structural identity — we do
+            // NOT pin a per-mode `.id` here (that would force a full rebuild and
+            // briefly lay the OUTGOING layout out at the NEW window size, which
+            // looks stretched). A plain opacity cross-fade is all we want.
             content
-                // Cross-fade between SIZE layouts so a switch reads as a smooth
-                // fade rather than a hard rebuild-pop (the size-switch jank), and
-                // cross-fade on track identity / play state as before.
                 .transition(.opacity)
                 .animation(VPTheme.fade, value: mode)
                 .animation(VPTheme.fade, value: nowPlaying.track)
@@ -53,10 +55,10 @@ struct ModeContentView: View {
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted.animation(VPTheme.fade)) { providers in
             handleDrop(providers)
         }
-        // ONE stable identity across all sizes: SwiftUI reuses this outer shell
-        // (landscape + drop layer + hosting view) on a size switch and only
-        // swaps the inner `content`, instead of tearing down and rebuilding the
-        // entire tree (new VisualEffectBlur NSViews + layout) every time.
+        // ONE stable identity for the whole shell so SwiftUI REUSES the landscape
+        // + glass/blur NSViews and the hosting view across every size switch
+        // (the documented anti-jank fix). Without this, more of the tree gets
+        // rebuilt on each switch and size-changing visibly hitches.
         .id("vinylpod.content")
     }
 
@@ -131,7 +133,7 @@ struct ModeContentView: View {
 
     /// Window-size change from the settings menu.
     private func selectSize(_ mode: WindowMode) {
-        settings.windowMode = mode
+        guard settings.windowMode != mode else { return }
         WindowCoordinator.shared.manager?.apply(mode: mode)
     }
 

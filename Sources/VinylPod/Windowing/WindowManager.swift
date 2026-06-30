@@ -31,6 +31,9 @@ final class WindowManager {
     private var dynamicIslandWindow: NSPanel?
     private var dynamicIslandHostingController: NSHostingController<AnyView>?
     private var dynamicIslandExpanded = false
+    /// Guards rapid repeated size picks from re-hosting the same expensive glass
+    /// tree multiple times in one run-loop tick.
+    private var modeTransitionInFlight: WindowMode?
 
     private let originDefaultsKey = "vinylWindowOrigin"
 
@@ -49,18 +52,22 @@ final class WindowManager {
     /// Create the window for `mode` (if needed), host `content(mode)`, size,
     /// position, and show it.
     func show(_ mode: WindowMode) {
+        if settings.windowMode != mode {
+            settings.windowMode = mode
+        }
+
         let window = ensureWindow(for: mode)
         hostContent(for: mode, in: window)
         sizeAndPosition(window, for: mode, animated: false)
 
         window.makeKeyAndOrderFront(nil)
+        currentMode = mode
         if mode == .desktopWidget {
             // The widget is visual-first decor; it should not steal focus and
             // must adopt the persisted front/behind layer immediately.
             window.orderFront(nil)
             apply(desktopLayer: settings.desktopLayer)
         }
-        currentMode = mode
         syncDynamicIsland()
     }
 
@@ -69,11 +76,31 @@ final class WindowManager {
     /// hosted content. If the style class changes (widget ⇄ non-widget) the
     /// window must be recreated, but audio is untouched either way.
     func apply(mode: WindowMode) {
+        if settings.windowMode != mode {
+            settings.windowMode = mode
+        }
+
         guard window != nil else {
             // Nothing on screen yet — treat as initial show.
             show(mode)
             return
         }
+
+        if currentMode == mode {
+            if mode == .desktopWidget {
+                apply(desktopLayer: settings.desktopLayer)
+            } else {
+                applyStacking(settings.keepWindowInFront ? .front : .back)
+            }
+            syncDynamicIsland()
+            return
+        }
+
+        guard modeTransitionInFlight != mode else { return }
+        modeTransitionInFlight = mode
+        defer { modeTransitionInFlight = nil }
+
+        closeTransientPopoverWindows()
 
         let needsNewWindow = styleClassChanged(from: currentMode, to: mode)
         if needsNewWindow {
@@ -85,12 +112,18 @@ final class WindowManager {
         }
 
         guard let window else { return }
+        // Heavy SwiftUI glass views lag when the NSPanel frame itself animates.
+        // Resize first, synchronously, then swap the mode-specific root view.
+        // The content view handles a short fade; the window should not drag
+        // blur/material layers through a frame animation.
+        sizeAndPosition(window, for: mode, animated: false)
         hostContent(for: mode, in: window)
-        sizeAndPosition(window, for: mode, animated: true)
         currentMode = mode
 
         if mode == .desktopWidget {
             apply(desktopLayer: settings.desktopLayer)
+        } else {
+            applyStacking(settings.keepWindowInFront ? .front : .back)
         }
         syncDynamicIsland()
     }
@@ -217,11 +250,12 @@ final class WindowManager {
         let old = window
         hostingController = nil
         window = nil
+        currentMode = nil
 
         let fresh = makeWindow(for: mode)
         window = fresh
-        hostContent(for: mode, in: fresh)
         sizeAndPosition(fresh, for: mode, animated: false)
+        hostContent(for: mode, in: fresh)
 
         fresh.makeKeyAndOrderFront(nil)
         old?.orderOut(nil)
@@ -373,7 +407,12 @@ final class WindowManager {
                 // First appearance: restore persisted origin or center on screen.
                 origin = restoredOrigin(for: size)
             }
-            targetFrame = NSRect(origin: origin, size: size)
+            // Keep the card fully on-screen. Growing a small widget around its
+            // center can otherwise push the new (larger) frame under the menu
+            // bar / notch or off the top/side — clamp it back into the visible
+            // frame before we set or persist it.
+            let visible = visibleFrame(for: window)
+            targetFrame = clamp(NSRect(origin: origin, size: size), to: visible)
         }
 
         if animated {
@@ -393,12 +432,54 @@ final class WindowManager {
         }
     }
 
+    /// The visible frame (excludes menu bar / Dock) of the screen the window
+    /// currently lives on, falling back to the main screen and finally a sane
+    /// default so we never operate on a zero rect.
+    private func visibleFrame(for window: NSWindow) -> NSRect {
+        window.screen?.visibleFrame
+            ?? NSScreen.main?.visibleFrame
+            ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+    }
+
+    /// Clamp `frame` so it stays fully inside `visible`. If `frame` is larger
+    /// than `visible` in a dimension, that axis is aligned to the visible
+    /// origin (we never produce a negative inset / overscroll).
+    private func clamp(_ frame: NSRect, to visible: NSRect) -> NSRect {
+        var origin = frame.origin
+
+        // Horizontal: prefer keeping the right edge in, then the left edge.
+        if frame.width >= visible.width {
+            origin.x = visible.minX
+        } else {
+            origin.x = min(origin.x, visible.maxX - frame.width)
+            origin.x = max(origin.x, visible.minX)
+        }
+
+        // Vertical: prefer keeping the top edge in, then the bottom edge.
+        if frame.height >= visible.height {
+            origin.y = visible.minY
+        } else {
+            origin.y = min(origin.y, visible.maxY - frame.height)
+            origin.y = max(origin.y, visible.minY)
+        }
+
+        return NSRect(origin: origin, size: frame.size)
+    }
+
     /// Restore the saved window origin, or center on the main screen on first run.
     private func restoredOrigin(for size: CGSize) -> NSPoint {
         if let saved = UserDefaults.standard.string(forKey: originDefaultsKey) {
             let point = NSPointFromString(saved)
-            // Guard against an off-screen / zeroed value.
-            if point != .zero { return point }
+            let candidate = NSRect(origin: point, size: size)
+            // Guard against an off-screen, zeroed, or previously corrupted
+            // value. This matters after switching back from full-screen Desktop
+            // mode, where a bad origin makes small/medium/large look "stuck".
+            // `intersects` alone can pass a frame that's mostly off-screen (only
+            // a sliver overlaps, or the title sits under the notch), so clamp
+            // the candidate fully onto the screen it overlaps before returning.
+            if point != .zero, let screen = visibleScreen(intersecting: candidate) {
+                return clamp(candidate, to: screen).origin
+            }
         }
         // Center on the main screen.
         let screen = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
@@ -406,8 +487,31 @@ final class WindowManager {
                        y: screen.midY - size.height / 2)
     }
 
+    /// The visible frame of the first screen whose visible area `frame`
+    /// overlaps, or nil if `frame` is entirely off every screen.
+    private func visibleScreen(intersecting frame: NSRect) -> NSRect? {
+        NSScreen.screens
+            .map(\.visibleFrame)
+            .first { frame.intersects($0) }
+    }
+
     private func persistOrigin(_ origin: NSPoint) {
         UserDefaults.standard.set(NSStringFromPoint(origin), forKey: originDefaultsKey)
+    }
+
+    /// SwiftUI popovers are hosted in private transient windows. If a user picks
+    /// a size from a popover and the source view is immediately replaced, those
+    /// private windows can survive for a frame or two and steal clicks, which
+    /// feels like the size switch "lagged" or did not work. Close only popover
+    /// windows; leave the main widget and dynamic island panels alone.
+    private func closeTransientPopoverWindows() {
+        for candidate in NSApp.windows {
+            guard candidate !== window, candidate !== dynamicIslandWindow else { continue }
+            let className = NSStringFromClass(type(of: candidate)).lowercased()
+            guard className.contains("popover") else { continue }
+            candidate.orderOut(nil)
+            candidate.close()
+        }
     }
 
     // MARK: - Helpers
