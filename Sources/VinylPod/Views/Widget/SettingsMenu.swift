@@ -35,11 +35,17 @@ struct SettingsMenuButton: View {
     private let menuWidth: CGFloat = 242
     private let menuMaxHeight: CGFloat = 760
     private let dropdownAnimation = Animation.timingCurve(0.16, 1.0, 0.30, 1.0, duration: 0.28)
-    private let menuInk = Color.black.opacity(0.82)
-    private let menuSecondaryInk = Color.black.opacity(0.60)
-    private let menuMutedInk = Color.black.opacity(0.42)
-    private let menuHoverFill = Color.black.opacity(0.075)
-    private let menuDividerInk = Color.black.opacity(0.13)
+    private let menuInk = Color.black.opacity(0.92)
+    private let menuSecondaryInk = Color.black.opacity(0.72)
+    private let menuMutedInk = Color.black.opacity(0.56)
+    private let menuHoverFill = Color.black.opacity(0.095)
+    private let menuDividerInk = Color.black.opacity(0.18)
+    private let menuCheckInk = Color.black.opacity(0.88)
+    private var triggerHitTarget: CGFloat { max(triggerSize + 8, 28) }
+    private var constrainedMenuMaxHeight: CGFloat {
+        let visibleHeight = NSScreen.main?.visibleFrame.height ?? menuMaxHeight
+        return min(menuMaxHeight, max(360, visibleHeight - 96))
+    }
 
     var body: some View {
         trigger
@@ -47,6 +53,14 @@ struct SettingsMenuButton: View {
                 dropdown
                     .frame(width: menuWidth)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+            .onChange(of: settings.windowMode) { _ in
+                if open {
+                    withAnimation(dropdownAnimation) { open = false }
+                }
+            }
+            .onDisappear {
+                open = false
             }
     }
 
@@ -69,37 +83,44 @@ struct SettingsMenuButton: View {
                 .overlay(
                     Circle().strokeBorder(triggerStroke ?? VPTheme.glassStroke, lineWidth: 1)
                 )
+                .frame(width: triggerHitTarget, height: triggerHitTarget)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .onHover { triggerHovered = $0 }
+        .help("Settings")
+        .accessibilityLabel("Settings")
     }
 
     // MARK: - Dropdown panel
 
     private var dropdown: some View {
-        GlassPanel(cornerRadius: VPTheme.radius) {
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    menuContent
-                }
-                .padding(.vertical, 6)
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                menuContent
             }
-            .frame(maxHeight: menuMaxHeight)
+            .padding(.vertical, 6)
         }
+        .frame(maxHeight: constrainedMenuMaxHeight)
+        // Single light glass surface. The menu ink colors are tuned for this
+        // light backing; the content was previously *also* wrapped in a
+        // `GlassPanel`, whose own dark `VisualEffectBlur` + tint drew underneath
+        // and double-clipped against the surface below. Removed so only this
+        // intended surface renders.
         .background(
             ZStack {
                 VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
                     .clipShape(RoundedRectangle(cornerRadius: VPTheme.radius, style: .continuous))
                 RoundedRectangle(cornerRadius: VPTheme.radius, style: .continuous)
-                    .fill(Color.white.opacity(0.82))
+                    .fill(Color.white.opacity(0.93))
                 RoundedRectangle(cornerRadius: VPTheme.radius, style: .continuous)
-                    .fill(settings.albumPalette.vibrant.color.opacity(0.16))
+                    .fill(settings.albumPalette.vibrant.color.opacity(0.11))
                     .blendMode(.multiply)
                 LinearGradient(
                     colors: [
-                        Color.white.opacity(0.34),
-                        settings.albumPalette.muted.color.opacity(0.10),
-                        Color.black.opacity(0.045)
+                        Color.white.opacity(0.42),
+                        settings.albumPalette.muted.color.opacity(0.07),
+                        Color.black.opacity(0.035)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -125,6 +146,13 @@ struct SettingsMenuButton: View {
         )
         .shadow(color: Color.black.opacity(0.28), radius: 22, x: 0, y: 10)
         .compositingGroup()
+        .overlay(
+            SettingsMenuWindowConfigurator { window in
+                configureMenuWindow(window)
+            }
+            .frame(width: 0, height: 0)
+            .allowsHitTesting(false)
+        )
     }
 
     // MARK: - Menu content (exact hierarchy, top → bottom)
@@ -148,26 +176,30 @@ struct SettingsMenuButton: View {
                  checked: settings.musicSource == .browser) {
             settings.musicSource = .browser
         }
-        // Non-checkable action row.
+        // Non-checkable action row → opens the browser-extension setup guide.
         checkRow(title: "Safari Music Guide", checked: false, showsCheckColumn: true) {
-            print("[SettingsMenu] Safari Music Guide tapped")
+            if let url = URL(string: "https://vinylpod.app/safari") {
+                NSWorkspace.shared.open(url)
+            }
         }
 
         // Music Player Size (radio over WindowMode.allCases).
         sectionHeader("Music Player Size")
         ForEach(WindowMode.allCases) { mode in
-            checkRow(title: mode.displayName,
+            checkRow(title: menuTitle(for: mode),
                      checked: settings.windowMode == mode) {
                 withAnimation(VPTheme.fade) { open = false }
-                settings.windowMode = mode
-                onSelectSize(mode)
+                guard settings.windowMode != mode else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) {
+                    onSelectSize(mode)
+                }
             }
         }
 
         divider
 
         // Toggles.
-        checkRow(title: "Dynamic island", checked: settings.dynamicNotch) {
+        checkRow(title: "Dynamic Island", checked: settings.dynamicNotch) {
             settings.dynamicNotch.toggle()
         }
         checkRow(title: "Show in Menu Bar", checked: settings.showInMenuBar) {
@@ -254,6 +286,25 @@ struct SettingsMenuButton: View {
         }
     }
 
+    private func menuTitle(for mode: WindowMode) -> String {
+        mode == .desktopWidget ? "Desktop Widget" : mode.displayName
+    }
+
+    private func configureMenuWindow(_ window: NSWindow) {
+        // The host panels can sit at status-window level; lift the popover just
+        // above them so it stays visible and clickable over VinylPod chrome.
+        window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.statusWindow)) + 1)
+        window.backgroundColor = .clear
+        window.isOpaque = false
+        window.hidesOnDeactivate = false
+        window.orderFrontRegardless()
+
+        var behavior = window.collectionBehavior
+        behavior.insert(.fullScreenAuxiliary)
+        behavior.insert(.ignoresCycle)
+        window.collectionBehavior = behavior
+    }
+
     // MARK: - "You're a Pro" status row
 
     private var proStatusRow: some View {
@@ -308,7 +359,7 @@ struct SettingsMenuButton: View {
                     if checked {
                         Image(systemName: "checkmark")
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(settings.albumPalette.vibrant.color)
+                            .foregroundColor(menuCheckInk)
                     }
                 }
                 .frame(width: 16, alignment: .center)
@@ -327,6 +378,7 @@ struct SettingsMenuButton: View {
                     .fill(hovered ? menuHoverFill : Color.clear)
                     .padding(.horizontal, 4)
             )
+            .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
     }
@@ -357,6 +409,7 @@ struct SettingsMenuButton: View {
                     .fill(hovered ? menuHoverFill : Color.clear)
                     .padding(.horizontal, 4)
             )
+            .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
     }
@@ -387,6 +440,50 @@ private struct HoverRow<Content: View>: View {
             content(hovered)
         }
         .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
         .onHover { hovered = $0 }
+    }
+}
+
+// MARK: - Popover window configurator
+
+/// Gives the SwiftUI popover's backing window the same stacking priority as the
+/// floating app chrome, without scanning or mutating unrelated app windows.
+@MainActor
+private struct SettingsMenuWindowConfigurator: NSViewRepresentable {
+    var configure: (NSWindow) -> Void
+
+    func makeNSView(context: Context) -> ConfiguringView {
+        ConfiguringView(configure: configure)
+    }
+
+    func updateNSView(_ nsView: ConfiguringView, context: Context) {
+        nsView.configure = configure
+        nsView.configureWindowIfNeeded()
+    }
+
+    final class ConfiguringView: NSView {
+        var configure: (NSWindow) -> Void
+
+        init(configure: @escaping (NSWindow) -> Void) {
+            self.configure = configure
+            super.init(frame: .zero)
+        }
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) {
+            nil
+        }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            configureWindowIfNeeded()
+        }
+
+        func configureWindowIfNeeded() {
+            guard let window else { return }
+            configure(window)
+        }
     }
 }
