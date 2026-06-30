@@ -68,6 +68,7 @@ final class BrowserBridge {
             }
         }
         connections.append(conn)
+        publishConnectionState()
         conn.start(queue: queue)
         receive(on: conn)
     }
@@ -75,6 +76,16 @@ final class BrowserBridge {
     private func remove(_ conn: NWConnection) {
         conn.cancel()
         connections.removeAll { $0 === conn }
+        publishConnectionState()
+    }
+
+    /// Reflect the current connection count to the main-actor service so the
+    /// settings UI can show a real "connected" indicator. Called on `queue`.
+    private func publishConnectionState() {
+        let connected = !connections.isEmpty
+        Task { @MainActor [nowPlaying] in
+            nowPlaying.setBridgeConnected(connected)
+        }
     }
 
     private func receive(on conn: NWConnection) {

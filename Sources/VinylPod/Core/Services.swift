@@ -45,6 +45,10 @@ final class NowPlayingService: ObservableObject {
     @Published private(set) var isPlaying: Bool = false
     @Published private(set) var position: TimeInterval = 0
     @Published private(set) var duration: TimeInterval = 0
+    /// Whether the browser extension currently has an open WebSocket to the
+    /// local bridge. Set by BrowserBridge on connect/disconnect — it changes
+    /// rarely (never per tick), so the settings UI can observe it cheaply.
+    @Published private(set) var bridgeConnected: Bool = false
 
     /// Injected by the Audio module at startup.
     var player: AudioPlaying?
@@ -101,6 +105,11 @@ final class NowPlayingService: ObservableObject {
         position = pos
         if duration != dur { duration = dur }
         if trackChanged { onTrackChanged?(t) }
+    }
+
+    /// Called by BrowserBridge when an extension client connects/disconnects.
+    func setBridgeConnected(_ connected: Bool) {
+        if bridgeConnected != connected { bridgeConnected = connected }
     }
 
     func playPause() {
@@ -195,6 +204,10 @@ final class AppSettings: ObservableObject {
     @Published var vinylStyle: VinylStyle = .image {
         didSet { UserDefaults.standard.set(vinylStyle.rawValue, forKey: "vinylStyle") }
     }
+    /// How strongly album colors tint the liquid glass membranes.
+    @Published var glassTintStrength: GlassTintStrength = .balanced {
+        didSet { UserDefaults.standard.set(glassTintStrength.rawValue, forKey: "glassTintStrength") }
+    }
 
     /// Simple boolean toggles from the dropdown. Persisted by key = property name.
     @Published var showProgress      = true  { didSet { persist("showProgress", showProgress) } }
@@ -230,6 +243,8 @@ final class AppSettings: ObservableObject {
            let s = PlaybackSource(rawValue: raw) { musicSource = s }
         if let raw = UserDefaults.standard.string(forKey: "vinylStyle"),
            let v = VinylStyle(rawValue: raw) { vinylStyle = v }
+        if let raw = UserDefaults.standard.string(forKey: "glassTintStrength"),
+           let strength = GlassTintStrength(rawValue: raw) { glassTintStrength = strength }
         showProgress      = Self.bool("showProgress", default: true)
         keepWindowInFront = Self.bool("keepWindowInFront", default: true)
         dynamicNotch      = Self.bool("dynamicNotch", default: true)
