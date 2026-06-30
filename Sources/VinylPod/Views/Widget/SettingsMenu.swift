@@ -430,16 +430,38 @@ private struct NowPlayingSourceRow: View {
 
     var body: some View {
         let track = nowPlaying.track
+        let connected = nowPlaying.bridgeConnected
         let playing = !track.isEmpty
+
+        // Three honest states: actively playing (show the live source), socket
+        // up but idle, or no live connection at all.
+        let symbol: String
+        let primary: String
+        let dim: Bool
+        if playing {
+            symbol = track.source.sfSymbol
+            primary = track.source.displayName
+            dim = false
+        } else if connected {
+            symbol = "dot.radiowaves.left.and.right"
+            primary = "Connected — waiting for playback"
+            dim = false
+        } else {
+            symbol = "circle.dashed"
+            primary = "Not connected — open music in a browser"
+            dim = true
+        }
+
         return HStack(spacing: 8) {
-            Image(systemName: playing ? track.source.sfSymbol : "circle.dashed")
+            Image(systemName: symbol)
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(Color.black.opacity(playing ? 0.88 : 0.56))
+                .foregroundColor(Color.black.opacity(dim ? 0.5 : 0.85))
                 .frame(width: 16, alignment: .center)
-            Text(playing ? track.source.displayName : "Waiting for a browser…")
+            Text(primary)
                 .font(VPTheme.body(13))
-                .foregroundColor(Color.black.opacity(0.92))
+                .foregroundColor(Color.black.opacity(dim ? 0.62 : 0.92))
                 .shadow(color: .white.opacity(0.35), radius: 0.5, x: 0, y: 1)
+                .lineLimit(1)
             Spacer(minLength: 0)
             if playing, !track.artist.isEmpty {
                 Text(track.artist)
