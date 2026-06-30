@@ -29,6 +29,14 @@ struct AdaptiveWidgetGlassBackground: View {
         let vibrant = palette.vibrant.color
         let muted = palette.muted.color
         let shadow = palette.shadow.color
+        let chromaBoost = min(palette.vibrant.chroma * 0.18, 0.14)
+        let artworkLuminance = palette.dominant.relativeLuminance
+        let isBrightArtwork = artworkLuminance > 0.46
+        let isDarkArtwork = artworkLuminance < 0.16
+        let colorMembraneOpacity = min(accentStrength + 0.13 + chromaBoost, 0.48)
+        let dominantMembraneOpacity = min(accentStrength + 0.08 + chromaBoost * 0.65, 0.38)
+        let legibilityScrimOpacity = isBrightArtwork ? 0.22 : (isDarkArtwork ? 0.12 : 0.17)
+        let depthOpacity = isDarkArtwork ? 0.26 : 0.18
 
         return ZStack {
             // (1) The glass itself — a live blur of whatever sits behind the
@@ -43,9 +51,9 @@ struct AdaptiveWidgetGlassBackground: View {
             shape.fill(
                 LinearGradient(
                     stops: [
-                        .init(color: vibrant.opacity(accentStrength * 0.92 + 0.12), location: 0.00),
-                        .init(color: dominant.opacity(accentStrength * 0.72 + 0.10), location: 0.45),
-                        .init(color: shadow.opacity(0.16), location: 1.00)
+                        .init(color: vibrant.opacity(colorMembraneOpacity), location: 0.00),
+                        .init(color: dominant.opacity(dominantMembraneOpacity), location: 0.46),
+                        .init(color: shadow.opacity(depthOpacity), location: 1.00)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -59,20 +67,36 @@ struct AdaptiveWidgetGlassBackground: View {
             shape.fill(
                 LinearGradient(
                     stops: [
-                        .init(color: .white.opacity(neutralOpacity * 0.22), location: 0.00),
-                        .init(color: muted.opacity(neutralOpacity * 0.26),  location: 0.46),
-                        .init(color: shadow.opacity(0.14),                 location: 1.00)
+                        .init(color: .white.opacity(neutralOpacity * 0.28), location: 0.00),
+                        .init(color: muted.opacity(neutralOpacity * 0.22),  location: 0.42),
+                        .init(color: shadow.opacity(0.12 + depthOpacity),   location: 1.00)
                     ],
                     startPoint: .top, endPoint: .bottom
                 )
             )
 
+            // (3) Text-safety vignette — album colors can be bright or pastel,
+            // so this thin multiply layer preserves white text contrast without
+            // muting the cover hue as much as an opaque black rectangle would.
+            shape.fill(
+                LinearGradient(
+                    stops: [
+                        .init(color: Color.black.opacity(legibilityScrimOpacity * 0.20), location: 0.00),
+                        .init(color: Color.black.opacity(legibilityScrimOpacity * 0.44), location: 0.58),
+                        .init(color: Color.black.opacity(legibilityScrimOpacity), location: 1.00)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .blendMode(.multiply)
+
             // (3) Album-color bloom from the upper-left. Soft-light so it
             // tints the glass rather than painting over it.
             RadialGradient(
                 colors: [
-                    vibrant.opacity(accentStrength * 1.55),
-                    dominant.opacity(accentStrength * 0.86),
+                    vibrant.opacity(min(accentStrength * 1.70 + chromaBoost, 0.56)),
+                    dominant.opacity(min(accentStrength * 0.92 + chromaBoost * 0.55, 0.36)),
                     .clear
                 ],
                 center: UnitPoint(x: 0.18, y: 0.02),
@@ -88,13 +112,26 @@ struct AdaptiveWidgetGlassBackground: View {
             shape.fill(
                 LinearGradient(
                     stops: [
-                        .init(color: .white.opacity(0.50), location: 0.00),
-                        .init(color: vibrant.opacity(0.24), location: 0.06),
-                        .init(color: .clear,               location: 0.20)
+                        .init(color: .white.opacity(isDarkArtwork ? 0.62 : 0.52), location: 0.00),
+                        .init(color: vibrant.opacity(0.30), location: 0.055),
+                        .init(color: .clear,                location: 0.22)
                     ],
                     startPoint: .top, endPoint: .bottom
                 )
             )
+            .blendMode(.screen)
+            .allowsHitTesting(false)
+
+            RadialGradient(
+                colors: [
+                    Color.white.opacity(isDarkArtwork ? 0.24 : 0.16),
+                    .clear
+                ],
+                center: UnitPoint(x: 0.10, y: 0.08),
+                startRadius: 0,
+                endRadius: 135
+            )
+            .clipShape(shape)
             .blendMode(.screen)
             .allowsHitTesting(false)
 
@@ -106,7 +143,7 @@ struct AdaptiveWidgetGlassBackground: View {
                         LinearGradient(
                             colors: [
                                 Color.black.opacity(0.04),
-                                Color.black.opacity(0.20)
+                                Color.black.opacity(isBrightArtwork ? 0.28 : 0.22)
                             ],
                             startPoint: .top,
                             endPoint: .bottom
@@ -124,15 +161,30 @@ struct AdaptiveWidgetGlassBackground: View {
                 .strokeBorder(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(strokeOpacity + 0.34),
-                            vibrant.opacity(strokeOpacity + 0.18),
-                            shadow.opacity(0.28)
+                            Color.white.opacity(strokeOpacity + (isDarkArtwork ? 0.42 : 0.34)),
+                            vibrant.opacity(strokeOpacity + 0.24),
+                            shadow.opacity(isBrightArtwork ? 0.42 : 0.32)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
                     lineWidth: 1.0
                 )
+
+            shape
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            .clear,
+                            shadow.opacity(isBrightArtwork ? 0.34 : 0.24)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.6
+                )
+                .blur(radius: 0.35)
+                .blendMode(.multiply)
         }
         .animation(VPTheme.liquid, value: settings.albumPalette)
     }

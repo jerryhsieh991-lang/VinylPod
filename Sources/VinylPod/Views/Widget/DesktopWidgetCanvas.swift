@@ -558,7 +558,7 @@ struct DesktopWidgetCanvas: View {
     }
 
     private var secondaryLine: String {
-        if nowPlaying.track.isEmpty { return "Please play music on Spotify or Music" }
+        if nowPlaying.track.isEmpty { return "Drop a track here or connect a source." }
         return nowPlaying.track.artist.isEmpty ? nowPlaying.track.source.displayName : nowPlaying.track.artist
     }
 
@@ -576,7 +576,7 @@ struct DesktopWidgetCanvas: View {
     private func syncRecordAnimation() {
         if nowPlaying.isPlaying {
             recordRotation = 0
-            withAnimation(.linear(duration: 11.0).repeatForever(autoreverses: false)) {
+            withAnimation(.linear(duration: 18.0).repeatForever(autoreverses: false)) {
                 recordRotation = 360
             }
         } else {

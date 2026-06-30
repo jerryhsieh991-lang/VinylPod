@@ -12,6 +12,7 @@ struct SmallGlassWidget: View {
     var onQuit: () -> Void
 
     @EnvironmentObject private var nowPlaying: NowPlayingService
+    @EnvironmentObject private var settings: AppSettings
 
     private let widgetSize = CGSize(width: 162, height: 162)
     private let artworkSize: CGFloat = 98
@@ -69,36 +70,45 @@ struct SmallGlassWidget: View {
     }
 
     private var bottomStrip: some View {
-        ZStack(alignment: .topLeading) {
-            Rectangle()
-                .fill(Color(red: 0.21, green: 0.16, blue: 0.20).opacity(0.50))
+        let palette = settings.albumPalette
+        let brightCover = palette.dominant.relativeLuminance > 0.46
 
-            VStack(alignment: .leading, spacing: 0) {
+        return ZStack(alignment: .topLeading) {
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            palette.dominant.color.opacity(0.36),
+                            palette.shadow.color.opacity(brightCover ? 0.76 : 0.62)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(Color.black.opacity(brightCover ? 0.18 : 0.10))
+
+            VStack(spacing: 2) {
                 Text(primaryLine)
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Color.white.opacity(0.93))
                     .lineLimit(1)
-                Text(secondaryLine)
-                    .font(.system(size: 10, weight: .regular))
-                    .foregroundStyle(Color.white.opacity(0.78))
-                    .lineLimit(1)
-            }
-            .frame(width: 132, alignment: .leading)
-            .offset(x: 10, y: 3)
+                    .minimumScaleFactor(0.78)
+                    .frame(width: 142)
 
-            HStack(spacing: 16) {
-                smallControl("backward.fill") { nowPlaying.previous() }
-                Button { nowPlaying.playPause() } label: {
-                    Image(systemName: nowPlaying.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 25, weight: .bold))
-                        .foregroundStyle(Color.white.opacity(0.96))
-                        .frame(width: 25, height: 25)
-                        .offset(x: nowPlaying.isPlaying ? 0 : 1)
+                HStack(spacing: 17) {
+                    smallControl("backward.fill") { nowPlaying.previous() }
+                    Button { nowPlaying.playPause() } label: {
+                        Image(systemName: nowPlaying.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundStyle(Color.white.opacity(0.96))
+                            .frame(width: 25, height: 24)
+                            .offset(x: nowPlaying.isPlaying ? 0 : 1)
+                    }
+                    .buttonStyle(.plain)
+                    smallControl("forward.fill") { nowPlaying.next() }
                 }
-                .buttonStyle(.plain)
-                smallControl("forward.fill") { nowPlaying.next() }
             }
-            .offset(x: 28, y: 13)
+            .frame(width: widgetSize.width, height: 42, alignment: .center)
         }
     }
 
@@ -108,7 +118,7 @@ struct SmallGlassWidget: View {
     }
 
     private var secondaryLine: String {
-        if nowPlaying.track.isEmpty { return "Please play music on Spotify." }
+        if nowPlaying.track.isEmpty { return "Drop a track here or connect a source." }
         return nowPlaying.track.artist.isEmpty ? nowPlaying.track.source.displayName : nowPlaying.track.artist
     }
 
@@ -183,7 +193,7 @@ struct MediumGlassWidget: View {
                     .padding(.top, 2)
 
                     if settings.showProgress {
-                        progressStrip
+                        MediumProgressStrip()
                             .frame(width: 184)
                     }
                 }
@@ -228,7 +238,7 @@ struct MediumGlassWidget: View {
     }
 
     private var secondaryLine: String {
-        if nowPlaying.track.isEmpty { return "Please play music on Spotify or Safari." }
+        if nowPlaying.track.isEmpty { return "Drop a track here or connect a source." }
         return nowPlaying.track.artist.isEmpty ? nowPlaying.track.source.displayName : nowPlaying.track.artist
     }
 
@@ -243,9 +253,39 @@ struct MediumGlassWidget: View {
         .buttonStyle(.plain)
     }
 
-    private var progressStrip: some View {
-        HStack(spacing: 5) {
-            Text(nowPlaying.track.isEmpty ? "00:00" : Self.timeString(nowPlaying.position))
+    private func mediumControl(_ symbol: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 23, weight: .bold))
+                .foregroundStyle(Color.white.opacity(0.95))
+                .frame(width: 23, height: 27)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Progress strip for the Medium widget — the ONLY part that reads `position`.
+///
+/// `NowPlayingService` republishes `position` ~10×/sec during playback. Reading
+/// it in `MediumGlassWidget.body` would re-run the whole widget (including the
+/// expensive `AdaptiveWidgetGlassBackground`) every tick. Isolating the read in
+/// this leaf — and coarsening to whole-second `Int`s — gates re-renders to at
+/// most 1×/sec, and never while paused/idle. No `.animation(_:value:)` is
+/// attached to the continuously-changing value.
+private struct MediumProgressStrip: View {
+    @EnvironmentObject private var nowPlaying: NowPlayingService
+
+    var body: some View {
+        let isEmpty = nowPlaying.track.isEmpty
+        let elapsed = isEmpty ? 0 : Int(nowPlaying.position)
+        let total = Int(nowPlaying.duration)
+        let remaining = max(total - elapsed, 0)
+        let fraction: CGFloat = total > 0
+            ? CGFloat(min(max(Double(elapsed) / Double(total), 0), 1))
+            : 0
+
+        return HStack(spacing: 5) {
+            Text(isEmpty ? "00:00" : Self.timeString(TimeInterval(elapsed)))
                 .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(Color.white.opacity(0.92))
                 .lineLimit(1)
@@ -259,11 +299,11 @@ struct MediumGlassWidget: View {
                     .frame(height: 3)
                 Capsule()
                     .fill(Color.white.opacity(0.95))
-                    .frame(width: max(3, 90 * progressFraction), height: 3)
+                    .frame(width: max(3, 90 * fraction), height: 3)
             }
             .frame(width: 90, height: 5)
 
-            Text(nowPlaying.track.isEmpty ? "-00:00" : Self.timeString(nowPlaying.duration))
+            Text(isEmpty ? "-00:00" : "-" + Self.timeString(TimeInterval(remaining)))
                 .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(Color.white.opacity(0.82))
                 .lineLimit(1)
@@ -271,21 +311,6 @@ struct MediumGlassWidget: View {
                 .fixedSize(horizontal: true, vertical: false)
                 .frame(width: 43, alignment: .trailing)
         }
-    }
-
-    private var progressFraction: CGFloat {
-        guard nowPlaying.duration > 0 else { return 0.0 }
-        return CGFloat(min(max(nowPlaying.position / nowPlaying.duration, 0), 1))
-    }
-
-    private func mediumControl(_ symbol: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 23, weight: .bold))
-                .foregroundStyle(Color.white.opacity(0.95))
-                .frame(width: 23, height: 27)
-        }
-        .buttonStyle(.plain)
     }
 
     private static func timeString(_ seconds: TimeInterval) -> String {

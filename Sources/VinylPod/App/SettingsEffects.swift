@@ -49,8 +49,20 @@ final class SettingsEffects {
     // MARK: - Observation
 
     private func observe() {
+        // NOTE: every applier below reads the CURRENT property off `settings`/
+        // `nowPlaying` (not the value the publisher emits) because most of them
+        // depend on several properties at once. `@Published` fires its publisher
+        // in `willSet`, i.e. BEFORE the stored property is updated — so a plain
+        // `.sink` would read the stale, pre-change value and apply the wrong
+        // state (e.g. toggling "Show artwork in Dock" on would read `false` and
+        // do nothing; a new track's artwork would lag one track behind). Hop to
+        // the next main-runloop tick so the property holds its new value by the
+        // time the applier runs. `applyAll()` already set the synchronous
+        // baseline in `start()`.
+
         // 1. Launch at Login.
         settings.$launchAtLogin
+            .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.applyLaunchAtLogin() }
             .store(in: &cancellables)
 
@@ -58,6 +70,7 @@ final class SettingsEffects {
         // policy may change we must also re-evaluate the Dock artwork (artwork is
         // only shown while the Dock icon is actually visible).
         settings.$hideDockIcon
+            .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.applyDockPolicy()
                 self?.applyDockArtwork()
@@ -65,6 +78,7 @@ final class SettingsEffects {
             .store(in: &cancellables)
 
         settings.$showInMenuBar
+            .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.applyDockPolicy()
                 self?.applyDockArtwork()
@@ -73,17 +87,20 @@ final class SettingsEffects {
 
         // 3. Show Artwork in Dock.
         settings.$showArtworkInDock
+            .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.applyDockArtwork() }
             .store(in: &cancellables)
 
         // 4. Cover art as wallpaper.
         settings.$coverArtAsWallpaper
+            .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.applyWallpaper() }
             .store(in: &cancellables)
 
         // 3 + 4. A new track refreshes both the Dock artwork and (if enabled) the
         // wallpaper.
         nowPlaying.$track
+            .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.applyDockArtwork()
                 self?.applyWallpaper()

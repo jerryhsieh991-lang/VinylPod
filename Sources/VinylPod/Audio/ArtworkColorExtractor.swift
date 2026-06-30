@@ -32,24 +32,46 @@ final class ArtworkColorExtractor: ArtworkColorExtracting {
         }
 
         let ciImage = CIImage(cgImage: cgImage)
-        let context = CIContext(options: [.workingColorSpace: CGColorSpaceCreateDeviceRGB()])
+        // Keep these local to the nonisolated extractor. Static properties on
+        // this @MainActor class become actor-isolated and trigger Swift 6
+        // warnings when read from the detached color-analysis path.
         let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let context = CIContext(options: [.workingColorSpace: colorSpace])
 
         guard let dominant = areaAverage(from: ciImage, context: context, colorSpace: colorSpace) else {
             return nil
         }
 
         let stats = samplePalette(from: ciImage, context: context, colorSpace: colorSpace)
-        let hasUsefulChroma = stats.vibrantWeight > 0.18
-        let vibrant = (stats.vibrant ?? dominant)
-            .adjusted(saturation: hasUsefulChroma ? 0.34 : nil, brightness: 0.50)
-        let muted = stats.muted ?? dominant.adjusted(saturation: nil, brightness: 0.42)
+        let rawVibrant = stats.vibrant ?? dominant
+        let hasUsefulChroma = max(rawVibrant.chroma, stats.averageSaturation) > 0.10
+            && stats.vibrantWeight > 0.035
+
+        let vibrant = rawVibrant.adjusted(
+            saturation: hasUsefulChroma ? 0.48 : nil,
+            brightness: hasUsefulChroma ? 0.56 : 0.46,
+            maximumBrightness: 0.90
+        )
+        let dominantMood = dominant
+            .mixed(with: vibrant, amount: hasUsefulChroma ? 0.24 : 0.0)
+            .adjusted(
+                saturation: hasUsefulChroma ? 0.24 : nil,
+                brightness: dominant.relativeLuminance < 0.08 ? 0.22 : nil,
+                maximumBrightness: 0.82
+            )
+        let muted = (stats.muted ?? dominantMood)
+            .mixed(with: vibrant, amount: hasUsefulChroma ? 0.16 : 0.0)
+            .adjusted(
+                saturation: hasUsefulChroma ? 0.18 : nil,
+                brightness: 0.30,
+                maximumBrightness: 0.76
+            )
 
         return AlbumColorPalette(
-            dominant: dominant,
+            dominant: dominantMood,
             vibrant: vibrant,
             muted: muted,
-            shadow: dominant.darkened(0.62)
+            shadow: dominantMood.darkened(0.68)
         )
     }
 
@@ -125,6 +147,8 @@ final class ArtworkColorExtractor: ArtworkColorExtracting {
         var mutedG = 0.0
         var mutedB = 0.0
         var mutedWeight = 0.0
+        var saturationTotal = 0.0
+        var acceptedPixels = 0
 
         var i = 0
         while i < pixels.count {
@@ -141,14 +165,23 @@ final class ArtworkColorExtractor: ArtworkColorExtracting {
             let saturation = maxC <= 0 ? 0 : (maxC - minC) / maxC
             let brightness = maxC
             guard brightness > 0.04, brightness < 0.98 else { continue }
+            saturationTotal += saturation
+            acceptedPixels += 1
 
-            let vividWeight = saturation * saturation * sqrt(brightness)
+            let midtoneBias = 1.0 - min(abs(brightness - 0.56) / 0.56, 1.0) * 0.34
+            let darkColorLift = brightness < 0.24 ? 1.35 : 1.0
+            let vividWeight = pow(saturation, 1.65)
+                * pow(max(brightness, 0.18), 0.72)
+                * midtoneBias
+                * darkColorLift
             vibrantR += r * vividWeight
             vibrantG += g * vividWeight
             vibrantB += b * vividWeight
             vibrantWeight += vividWeight
 
-            let mutedCandidate = max(0.05, 1.0 - saturation) * sqrt(brightness)
+            let mutedSaturationWindow = max(0.05, 1.0 - abs(saturation - 0.30) * 1.35)
+            let mutedBrightnessWindow = max(0.12, 1.0 - abs(brightness - 0.50) * 1.20)
+            let mutedCandidate = mutedSaturationWindow * mutedBrightnessWindow
             mutedR += r * mutedCandidate
             mutedG += g * mutedCandidate
             mutedB += b * mutedCandidate
@@ -158,7 +191,8 @@ final class ArtworkColorExtractor: ArtworkColorExtracting {
         return SampleStats(
             vibrant: color(r: vibrantR, g: vibrantG, b: vibrantB, weight: vibrantWeight),
             muted: color(r: mutedR, g: mutedG, b: mutedB, weight: mutedWeight),
-            vibrantWeight: vibrantWeight
+            vibrantWeight: acceptedPixels == 0 ? 0 : vibrantWeight / Double(acceptedPixels),
+            averageSaturation: acceptedPixels == 0 ? 0 : saturationTotal / Double(acceptedPixels)
         )
     }
 
@@ -171,5 +205,6 @@ final class ArtworkColorExtractor: ArtworkColorExtracting {
         var vibrant: RGBColorToken?
         var muted: RGBColorToken?
         var vibrantWeight: Double = 0
+        var averageSaturation: Double = 0
     }
 }

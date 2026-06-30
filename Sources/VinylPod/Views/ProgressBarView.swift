@@ -16,12 +16,16 @@ struct ProgressBarView: View {
     @VPState private var isDragging = false
     @VPState private var dragValue: TimeInterval = 0
 
-    private var duration: TimeInterval { max(nowPlaying.duration, 0.001) }
+    /// Real track length. May be 0 for live streams / not-yet-loaded media,
+    /// in which case we render an empty (indeterminate) bar rather than a
+    /// bogus full one.
+    private var duration: TimeInterval { max(nowPlaying.duration, 0) }
     private var position: TimeInterval {
         isDragging ? dragValue : nowPlaying.position
     }
     private var fraction: CGFloat {
-        CGFloat(min(max(position / duration, 0), 1))
+        guard duration > 0 else { return 0 }
+        return CGFloat(min(max(position / duration, 0), 1))
     }
 
     var body: some View {
@@ -66,11 +70,13 @@ struct ProgressBarView: View {
             }
             .frame(height: 14)
 
-            // Elapsed (left) / remaining (right) time labels.
+            // Elapsed (left) / remaining (right) time labels. With an unknown
+            // duration (live streams) there's no meaningful "remaining", so the
+            // trailing label falls back to the total placeholder.
             HStack {
                 Text(Self.timeString(position))
                 Spacer()
-                Text("-" + Self.timeString(max(duration - position, 0)))
+                Text(duration > 0 ? "-" + Self.timeString(duration - position) : "--:--")
             }
             .font(VPTheme.caption())
             .foregroundStyle(VPTheme.textMuted)

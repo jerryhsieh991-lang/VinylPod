@@ -42,21 +42,25 @@ final class MetadataReader: MetadataReading {
         do {
             let items = try await asset.load(.commonMetadata)
 
-            if let title = try await stringValue(for: .commonIdentifierTitle, in: items),
+            // Load each field independently: a single corrupt field (e.g. a bad
+            // title item) must not abort the remaining ones. Previously these
+            // shared one `try`, so a failure on `title` silently dropped the
+            // artist, album, AND artwork that follow it.
+            if let title = try? await stringValue(for: .commonIdentifierTitle, in: items),
                !title.isEmpty {
                 track.title = title
             }
-            if let artist = try await stringValue(for: .commonIdentifierArtist, in: items) {
+            if let artist = try? await stringValue(for: .commonIdentifierArtist, in: items) {
                 track.artist = artist
             }
-            if let album = try await stringValue(for: .commonIdentifierAlbumName, in: items) {
+            if let album = try? await stringValue(for: .commonIdentifierAlbumName, in: items) {
                 track.album = album
             }
-            if let artwork = try await artworkImage(from: items) {
+            if let artwork = try? await artworkImage(from: items) {
                 track.artwork = artwork
             }
         } catch {
-            // Keep the filename-derived fallback track.
+            // commonMetadata itself failed to load — keep the filename fallback.
         }
 
         return track
