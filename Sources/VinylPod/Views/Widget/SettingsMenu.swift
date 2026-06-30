@@ -15,7 +15,6 @@ import AppKit
 struct SettingsMenuButton: View {
 
     @EnvironmentObject var settings: AppSettings
-    @EnvironmentObject var nowPlaying: NowPlayingService
 
     /// Called when a size row is chosen (parent also persists `settings.windowMode`).
     var onSelectSize: (WindowMode) -> Void
@@ -162,23 +161,15 @@ struct SettingsMenuButton: View {
         // "You're a Pro" — dimmed, non-interactive status row.
         proStatusRow
 
-        // Music Player Source (radio).
-        sectionHeader("Music Player Source")
-        checkRow(title: "Apple Music",
-                 checked: settings.musicSource == .appleMusic) {
-            settings.musicSource = .appleMusic
-        }
-        checkRow(title: "Spotify",
-                 checked: settings.musicSource == .spotify) {
-            settings.musicSource = .spotify
-        }
-        checkRow(title: "Safari Music",
-                 checked: settings.musicSource == .browser) {
-            settings.musicSource = .browser
-        }
-        // Non-checkable action row → opens the browser-extension setup guide.
-        checkRow(title: "Safari Music Guide", checked: false, showsCheckColumn: true) {
-            if let url = URL(string: "https://vinylpod.app/safari") {
+        // Now Playing From — a LIVE source indicator. Replaces the old
+        // Apple Music / Spotify / Safari radio: the BrowserBridge ignores
+        // `musicSource` as a capture filter, so that radio changed nothing and
+        // only misrepresented what was actually being captured.
+        sectionHeader("Now Playing From")
+        NowPlayingSourceRow()
+        // Browser setup guide (the extension supports BOTH Chrome and Safari).
+        checkRow(title: "Connect a Browser…", checked: false, showsCheckColumn: true) {
+            if let url = URL(string: "https://vinylpod.app/connect") {
                 NSWorkspace.shared.open(url)
             }
         }
@@ -420,6 +411,46 @@ struct SettingsMenuButton: View {
             .overlay(menuDividerInk)
             .padding(.horizontal, 12)
             .padding(.vertical, 5)
+    }
+}
+
+// MARK: - Live "now playing from" row
+
+/// A tiny LEAF view that surfaces the CURRENT capture source (read from the live
+/// track), replacing the old static source radio.
+///
+/// It is the only piece of the settings menu that observes `NowPlayingService`.
+/// Keeping it a leaf is deliberate: a `position` tick re-evaluates just this
+/// small body — whose output is stable across a track, so SwiftUI coalesces it —
+/// without invalidating the menu trigger or the `WindowMode` picker above it.
+/// Reads `track` only, never `position`.
+@MainActor
+private struct NowPlayingSourceRow: View {
+    @EnvironmentObject var nowPlaying: NowPlayingService
+
+    var body: some View {
+        let track = nowPlaying.track
+        let playing = !track.isEmpty
+        return HStack(spacing: 8) {
+            Image(systemName: playing ? track.source.sfSymbol : "circle.dashed")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(Color.black.opacity(playing ? 0.88 : 0.56))
+                .frame(width: 16, alignment: .center)
+            Text(playing ? track.source.displayName : "Waiting for a browser…")
+                .font(VPTheme.body(13))
+                .foregroundColor(Color.black.opacity(0.92))
+                .shadow(color: .white.opacity(0.35), radius: 0.5, x: 0, y: 1)
+            Spacer(minLength: 0)
+            if playing, !track.artist.isEmpty {
+                Text(track.artist)
+                    .font(VPTheme.caption())
+                    .foregroundColor(Color.black.opacity(0.56))
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .allowsHitTesting(false)
     }
 }
 
