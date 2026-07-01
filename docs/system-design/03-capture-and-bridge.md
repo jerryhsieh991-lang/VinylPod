@@ -370,6 +370,14 @@ The artwork URL is attacker-controlled (crafted by the web page's JavaScript). T
 
 The extension ships a `SafariExtensionWrapper/` Xcode target that generates a Safari App Extension from the same JS source. The `manifest.json` `world: "MAIN"` content script is a no-op in Safari, which is why `universal-relay.js` dynamically injects `mediasession-main.js` as a `<script>` tag. Named-site adapters run normally in Safari's ISOLATED world. The Safari wrapper must be distributed as part of the macOS app bundle (App Store or notarised direct download), not as a standalone browser extension, which is a separate packaging concern.
 
+### 6. Native capture depends on an undocumented, gateable private API
+
+`NativeMediaRemoteCapture` resolves every entry point (`MRMediaRemoteGetNowPlayingInfo`, `MRMediaRemoteGetNowPlayingApplicationIsPlaying`, `MRMediaRemoteRegisterForNowPlayingNotifications`) via `dlopen`/`dlsym` against `/System/Library/PrivateFrameworks/MediaRemote.framework/MediaRemote` — there is no public API for this, no Apple documentation, and no compatibility guarantee across macOS versions. On macOS 15.4+, Apple entitlement-gates `MRMediaRemoteGetNowPlayingInfo` and it typically returns an empty dictionary to third-party unsigned apps, which this adapter treats as "no data" rather than an error. Apple could remove, rename, or further restrict any of these symbols in a future release with zero notice, silently disabling this feature for all users. This risk is scoped entirely to the opt-in, off-by-default native-capture path (see "Native desktop-app capture" below); the browser-bridge pipeline documented above is unaffected and remains the default/primary capture path.
+
+### 7. Last.fm session key stored in UserDefaults, not Keychain
+
+`LastFmClient.persist(session:)` writes the Last.fm session key via `UserDefaults.standard.set(session.sessionKey, forKey: "lastfm.sessionKey")` (see "Last.fm scrobbling" below). UserDefaults is an unencrypted plist on disk — readable by anything with filesystem access to the user's account (other processes running as the same user, a backup/sync tool, etc.) — whereas Keychain provides OS-enforced access control and encryption at rest. The Last.fm session key is a moderate-sensitivity credential: it allows scrobbling and now-playing writes to the user's Last.fm account but (per Last.fm's API) cannot change the account password or email. Migrating this single value to Keychain (e.g. via a small wrapper around `SecItemAdd`/`SecItemCopyMatching`) would close this gap without any other architectural change.
+
 ---
 
 ## File Map
@@ -387,3 +395,117 @@ The extension ships a `SafariExtensionWrapper/` Xcode target that generates a Sa
 | `BrowserExtension/universal-relay.js` | ISOLATED | MAIN→SW bridge; Safari MAIN injection shim; SW→MAIN control relay |
 | `Sources/VinylPod/Bridge/BrowserBridge.swift` | Native | NWListener WebSocket server; artwork fetch + SSRF guard; `NowPlayingService` integration |
 | `Sources/VinylPod/Core/Services.swift` | Native | `NowPlayingService.updateFromExternal`; `ExternalControlAction`; `PlaybackSource` enum |
+
+---
+
+## Native desktop-app capture (optional, experimental)
+
+Separate from the browser-extension pipeline documented above, VinylPod has a second, **optional and off-by-default** capture path: `NativeMediaRemoteCapture` (`Sources/VinylPod/Capture/NativeMediaRemoteCapture.swift`) reads Now Playing metadata directly from desktop apps (Spotify.app, Music.app) via macOS's private MediaRemote framework. It never replaces the browser bridge — it only supplements it when the user explicitly turns it on.
+
+### How it resolves the private API
+
+`MediaRemote.framework` is a private framework with no public headers or documentation. `NativeMediaRemoteCapture` never links against it. Instead, at `start()` it calls `dlopen("/System/Library/PrivateFrameworks/MediaRemote.framework/MediaRemote", RTLD_LAZY)` and then `dlsym()`s three entry points by string name:
+
+- `MRMediaRemoteGetNowPlayingInfo` — async callback delivering a `[String: Any]` now-playing dictionary.
+- `MRMediaRemoteGetNowPlayingApplicationIsPlaying` — async callback delivering a `Bool` (resolved but not required — `isAvailable` only strictly requires the info getter).
+- `MRMediaRemoteRegisterForNowPlayingNotifications` — asks MediaRemote to start posting its own change notifications.
+
+Because everything is resolved at runtime via string lookup rather than static linking, **the app still loads and runs normally even if the framework is missing, renamed, or the symbols don't resolve** — `isAvailable` simply becomes `false` and `start()` logs one diagnostic line (`logUnavailableOnce`) and no-ops forever.
+
+### The macOS 15.4+ entitlement gate
+
+Starting with macOS 15.4, Apple entitlement-gates `MRMediaRemoteGetNowPlayingInfo`: third-party, unsigned/unentitled apps typically receive an **empty dictionary** back instead of an error. `handleInfo(_:)` treats an empty dict as the known entitlement-gate signature and simply returns without emitting an update — there is no crash, no error surfaced to the user, and no retry storm. The settings UI (below) is the only place this shows up, as a live status indicator that never turns green.
+
+### Update cadence: notifications + a slow poll, never a tight loop
+
+The adapter deliberately avoids any high-frequency loop:
+
+- It registers for MediaRemote's own `kMRMediaRemoteNowPlayingInfoDidChangeNotification` and `kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification` notifications and re-polls on each.
+- In addition, a single `Timer` fires at a fixed **1 Hz** (`timeInterval: 1.0`) purely to advance the elapsed-time display and to catch apps that don't reliably post change notifications. This is the only timer in the class.
+- Between polls, `handleInfo(_:)` **extrapolates elapsed time** forward from the last sample using the real wall-clock delta (`Date().timeIntervalSince(sampledAt)`) whenever MediaRemote returns the same `elapsed` value it gave last time — this keeps the displayed position moving smoothly at 60 fps in the UI without asking MediaRemote more than once a second.
+- `meaningfullyDifferent(_:_:)` dedupes: a new snapshot is only emitted via `onUpdate` when title/artist/album/`isPlaying` changed, duration moved by more than 0.5 s, or elapsed moved by at least ~0.75 s (roughly one tick). Sub-second jitter never reaches the callback.
+
+### Wiring into `NowPlayingService`
+
+`NowPlayingService.attachNativeCapture(settings:)` (`Sources/VinylPod/Core/Services.swift`) is the sole integration point, and it is called from exactly one place: `CaptureSettingsSection.swift`'s `.onChange(of: settings.nativeCaptureEnabled)`. It is idempotent — safe to call on every toggle flip.
+
+When `settings.nativeCaptureEnabled` is `true` and no adapter exists yet, it constructs a `NativeMediaRemoteCapture`, wires `onUpdate` to a closure that:
+
+1. **Refuses to override local-file playback** — `if self.track.source == .localFile { return }` is checked first, unconditionally, so native capture can never interrupt a track the user is playing directly in VinylPod.
+2. Maps `snap.bundleIdentifier` to a `PlaybackSource`: `"com.apple.Music"` → `.appleMusic`, `"com.spotify.client"` → `.spotify`, and — notably — the `default` case also falls through to `.spotify` (i.e. if MediaRemote reports a now-playing session but `frontmostMediaBundleIdentifier()` couldn't determine which app owns it, the source is labeled `.spotify` rather than left generic).
+3. Builds a `Track` from the snapshot and calls `self.updateFromExternal(t, isPlaying:, position:, duration:)` — **the exact same method the browser bridge uses**, so all the existing change-guard/perf-invariant logic in `updateFromExternal` (only re-triggering `onTrackChanged` on a genuine track change) applies equally to native-capture updates.
+
+When the setting is turned off, `nativeCapture?.stop()` is called and the adapter reference is dropped.
+
+`NowPlayingService.nativeCaptureDidReceiveData` exposes `nativeCapture?.didReceiveData ?? false` — `didReceiveData` latches to `true` the first time `handleInfo` sees a non-empty dictionary with at least one non-empty text field, and never resets while the adapter is running.
+
+### Settings UI
+
+`CaptureSettingsSection.swift` (`Sources/VinylPod/Views/Settings/CaptureSettingsSection.swift`) renders:
+
+- A toggle bound to `settings.nativeCaptureEnabled`, whose `.onChange` calls `attachNativeCapture(settings:)` and then `refreshIndicator()`.
+- A "Status" row with a colored dot: gray when the toggle is off, orange when on-but-no-data-yet, green once `didReceiveData` is observed true.
+
+Per the view's own doc comment, this indicator is **decoupled from the playback tick on purpose**: the view observes only `AppSettings` (not `NowPlayingService`, whose `position` is republished ~10×/sec). Instead, `startIndicatorTimer()` runs its own 1 Hz `Timer` that reads the plain `Bool` off `AppEnvironment.shared.nowPlaying.nativeCaptureDidReceiveData` — so this settings screen never re-renders on the audio-playback tick.
+
+---
+
+## Last.fm scrobbling
+
+VinylPod optionally scrobbles played tracks to a user's Last.fm profile. The subsystem lives in `Sources/VinylPod/Scrobbling/` (`LastFmClient.swift`, `LastFmScrobbler.swift`, `LastFmModels.swift`) plus the settings UI in `Sources/VinylPod/Views/Settings/LastFmSettingsSection.swift`. It is entirely independent of the capture pipeline above — it consumes whatever `NowPlayingService.$track` publishes, regardless of whether that track came from the browser bridge, native capture, or local-file playback.
+
+### Configuration gate
+
+`LastFmClient.swift` hard-codes two empty placeholder constants at the top of the file, `LASTFM_API_KEY` and `LASTFM_API_SECRET`, with an instruction comment to obtain them from `https://www.last.fm/api/account/create`. `isConfigured` is `true` only when both are non-empty. Every public entry point on the client and the scrobbler checks `isConfigured` first and no-ops (no network call, no crash) until both are filled in; the settings UI shows a "API key not set" note in that state.
+
+### Auth flow: classic Last.fm desktop token exchange
+
+The client implements Last.fm's classic (non-OAuth) desktop auth handshake, split across two calls:
+
+1. **`beginAuthorization()`** calls `auth.getToken` (signed GET), stores the returned token in the actor-private `pendingAuthToken`, and returns a browser URL of the form `https://www.last.fm/api/auth/?api_key=…&token=…` for the caller to open (`LastFmSettingsSection.startConnection()` opens it via `NSWorkspace.shared.open(url)`). The user approves access on last.fm's own website.
+2. **`completeAuthorization()`** (triggered by the settings UI's "Complete connection" button, after the user has approved in-browser) calls `auth.getSession` with the pending token, and on success persists a `LastFmSession(username:sessionKey:)`.
+
+**Request signing**: `apiSignature(for:)` implements Last.fm's `api_sig` scheme exactly — sort all params (excluding `format`/`callback`) by key, concatenate as `key+value` with no separators, append the shared secret, then MD5-hash the UTF-8 bytes (`Insecure.MD5.hash`, hex-encoded). This is Last.fm's own documented signing algorithm, not a custom scheme.
+
+**Credential storage**: `persist(session:)` writes both the session key and username into `UserDefaults.standard` (keys `"lastfm.sessionKey"` / `"lastfm.username"`) — **not Keychain**. `sessionKey` and `username` are exposed as `nonisolated` computed properties reading straight back out of UserDefaults so the UI can access them synchronously without awaiting the actor. UserDefaults is unencrypted-at-rest and readable by anything with filesystem access to the user's account; Keychain would be the stronger choice for a credential like this (see Known Risks, below).
+
+### Now-playing push vs. scrobble: two distinct Last.fm API calls
+
+`LastFmClient` exposes both of Last.fm's write methods, and `LastFmScrobbler` calls each at a different moment:
+
+- **`track.updateNowPlaying`** (`LastFmClient.updateNowPlaying(_:)`) — fired immediately, once, whenever `LastFmScrobbler.handleTrackChange(_:)` sees a new eligible track. This is a transient "user is currently listening to X" signal with no permanence.
+- **`track.scrobble`** (`LastFmClient.scrobble(_:)`) — fired later, once a listening-duration threshold elapses, and permanently records the play in the user's Last.fm history.
+
+Both methods share the same guard (`guard isConfigured, let sk = sessionKey, item.isSubmittable else { return }`, where `isSubmittable` requires non-empty artist AND track title) and the same silent-failure handling (see below).
+
+### Scrobble-eligibility rule: matches Last.fm's real threshold
+
+`LastFmScrobbler.scrobbleDelay(for:)` implements Last.fm's actual scrobbling rule — a track must play for **at least half its duration, or 4 minutes, whichever is less**, and (implicitly, via the `< 30` check) must be **longer than 30 seconds** to be scrobbled at all:
+
+```swift
+static func scrobbleDelay(for duration: TimeInterval) -> TimeInterval {
+    let fourMinutes: TimeInterval = 240
+    if duration <= 0 {
+        // Unknown length: fall back to the 4-minute cap.
+        return fourMinutes
+    }
+    if duration < 30 { return 0 }             // too short to scrobble
+    return min(duration / 2, fourMinutes)
+}
+```
+
+This delay drives a single one-shot `Timer` (`scrobbleTimer`, `repeats: false`) started in `handleTrackChange(_:)`; if the track changes again before the timer fires, `cancelPendingScrobble()` invalidates it, so a skipped/abandoned track is never scrobbled. When the timer does fire, `fireScrobble(for:)` double-checks the pending item's `dedupeKey` still matches (guards against a race where the track changed back-and-forth) and re-checks `enabled`/`isConfigured`/`sessionKey` before actually calling `client.scrobble(item)`.
+
+The scrobbler subscribes only to `nowPlaying.$track` (via `.removeDuplicates()`), deliberately never to `position` — per its own doc comment, the scrobble threshold is timed off a wall-clock `startedAt` timestamp captured at track-change time, not off playback position, so no per-tick observer is introduced.
+
+### Failure handling: logged and dropped, no retry
+
+Both `updateNowPlaying(_:)` and `scrobble(_:)` wrap their network call in a `do/catch` that, on any error (network failure, Last.fm API error code, decoding failure), does exactly one thing: `NSLog("[Last.fm] updateNowPlaying failed: …")` / `NSLog("[Last.fm] scrobble failed: …")`. There is **no retry, no queue, no persistence of failed scrobbles** — a failed call is simply dropped and logged to the system console. If the network is down when a scrobble threshold fires, that listen is permanently lost to Last.fm (though it remains in VinylPod's own playback history, since scrobbling is a side-effect, not the source of truth for local state).
+
+### Settings UI
+
+`LastFmSettingsSection.swift` renders a self-contained panel (no required init args — it reads the `LastFmScrobbler.shared` / `LastFmClient.shared` singletons directly):
+
+- If `client.isConfigured` is `false`, shows a "API key not set" note pointing the user at `LastFmClient.swift`.
+- Otherwise shows an `enableRow` toggle bound to `scrobbler.enabled`, and a `connectionRow` reflecting a local `AuthPhase` enum (`idle` / `authorizing` / `working`) plus the client's persisted connection state — with "Connect to Last.fm" / "Complete connection" / "Cancel" / "Disconnect" buttons driving `startConnection()` / `completeConnection()` / `disconnect()`.
+- `disconnect()` calls `client.clearSession()`, which removes both UserDefaults keys, then nudges `scrobbler.objectWillChange.send()` so dependent UI refreshes immediately.

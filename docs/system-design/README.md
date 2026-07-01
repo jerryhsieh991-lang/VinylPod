@@ -7,16 +7,19 @@ liquid-glass now-playing widget in five selectable sizes, plus an optional
 macOS-style Dynamic Island. Built with **Swift Package Manager** (SwiftUI +
 AppKit), no third-party dependencies.
 
-This folder documents the architecture across five slices. Start here, then dive
-into the section you care about.
+This folder documents the product and architecture across eight slices. Start
+here, then dive into the section you care about.
 
 | # | Doc | Covers |
 |---|-----|--------|
-| 01 | [Core architecture](01-core-architecture.md) | Module layout, DI seams, `NowPlayingService` state core, app lifecycle |
-| 02 | [Windowing & UI](02-windowing-and-ui.md) | `NSPanel`/`NSHostingController` hosting, the 5 window modes, liquid-glass design system, Dynamic Island |
-| 03 | [Capture & bridge](03-capture-and-bridge.md) | Browser-extension capture pipeline, WebSocket wire protocol, reconnect logic |
+| 00 | [Product vision & target user](00-product-vision.md) | What VinylPod is, who it's for, value proposition, competitive positioning |
+| 01 | [Core architecture](01-core-architecture.md) | Module layout, DI seams, `NowPlayingService` / `AppSettings` state core, Settings-window vs. dropdown, native-capture wiring |
+| 02 | [Windowing & UI](02-windowing-and-ui.md) | `NSPanel`/`NSHostingController` hosting, the 5 window modes, size-switch rendering strategy, Dynamic Island |
+| 03 | [Capture & bridge](03-capture-and-bridge.md) | Browser-extension capture pipeline, WebSocket wire protocol, native MediaRemote capture, Last.fm scrobbling |
 | 04 | [Audio & media](04-audio-and-media.md) | Local playback (AVFoundation), metadata, off-main CoreImage color extraction |
 | 05 | [Security, performance & build](05-security-performance-build.md) | Bridge threat model, render-loop invariants, hotkeys, persistence, build pipeline |
+| 06 | [Design system](06-design-system.md) | Color tokens, the liquid-glass rendering recipe, typography/motion, per-size visual treatment |
+| 07 | [Feature inventory](07-feature-inventory.md) | Every setting/control census — working vs. experimental vs. inert vs. placeholder |
 
 ## System overview
 
@@ -106,13 +109,16 @@ MediaMate):
 - **Differentiation:** free, App-Store-safe browser/MediaSession capture, 5
   selectable widget sizes, liquid-glass + adaptive palette. No competitor combines
   these.
-- **Biggest feature gap:** **Last.fm scrobbling** — present in Sleeve, Tuneful,
-  NepTunes, and Silicio; absent here. Highest-value addition for this audience.
-- **Second gap:** **native desktop-app capture.** Everyone else sees the native
-  Spotify/Apple Music apps (via MediaRemote/AppleScript); VinylPod only sees the
-  browser. A future optional MediaRemote-adapter path (à la `ungive/mediaremote-adapter`,
-  the macOS-15.4 workaround the notch apps use) would close this — at the cost of
-  a private-API helper.
+- **Both former gaps are now closed, experimentally.** Last.fm scrobbling
+  (`Sources/VinylPod/Scrobbling/`) and an optional native MediaRemote capture
+  path (`Sources/VinylPod/Capture/NativeMediaRemoteCapture.swift`, dlopen/dlsym-
+  based so it degrades gracefully if Apple further gates the private framework)
+  were both added tonight — see doc 03. **Known issue:** per doc 07's feature
+  inventory, the Settings-window tab that should expose native capture + Last.fm
+  currently renders stub placeholders instead of the real (fully implemented)
+  sections — a stale "does not exist yet" comment in `SettingsWindow.swift`
+  never got updated after those sections were built. Small fix, currently blocks
+  users from discovering either feature.
 - **Crowded arena:** the Dynamic Island feature competes with mature, feature-rich
   notch apps (File Tray, calendar, HUD). VinylPod's island is now-playing-only —
   fine as a complement, not a differentiator.
