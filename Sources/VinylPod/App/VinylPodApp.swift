@@ -21,6 +21,12 @@ struct VinylPodApp: App {
     // Observed so the "Show in Menu Bar" toggle can insert/remove the menu-bar item.
     @ObservedObject private var settings = AppEnvironment.shared.settings
 
+    init() {
+        // Headless snapshot mode (dev tool): renders the widget to PNG and
+        // exits before any window/menu-bar machinery starts.
+        SnapshotRenderer.runIfRequested()
+    }
+
     var body: some Scene {
         // `isInserted` binds the menu-bar item's presence to the setting. (If it's
         // hidden, SettingsEffects forces the Dock icon on so there's still an
