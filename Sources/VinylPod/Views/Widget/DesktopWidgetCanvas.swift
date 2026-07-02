@@ -83,12 +83,19 @@ struct DesktopWidgetCanvas: View {
 
         return ZStack {
             if nowPlaying.track.isEmpty, let image = DefaultArtworkAsset.image {
-                Image(nsImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .blur(radius: 18)
-                    .scaleEffect(1.08)
+                // Color.clear.overlay keeps the image's native (square) size
+                // from becoming this view's ideal size — see LandscapeBackground
+                // for the full macOS 26 hosting-view story.
+                Color.clear
+                    .overlay(
+                        Image(nsImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .blur(radius: 18)
+                            .scaleEffect(1.08)
+                    )
                     .overlay(Color.black.opacity(0.10))
+                    .clipped()
             }
 
             LinearGradient(

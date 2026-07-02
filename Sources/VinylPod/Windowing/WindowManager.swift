@@ -272,19 +272,47 @@ final class WindowManager {
 
     /// Host (or re-host) `content(mode)` in the window via NSHostingController.
     private func hostContent(for mode: WindowMode, in window: NSWindow) {
+        // NOTE (macOS 26): the hosting view frames its internal platform view
+        // to the CONTENT's ideal size regardless of AppKit frames/constraints.
+        // The real fix lives in the content: no view may report an unbounded
+        // ideal size (see LandscapeBackground's Color.clear.overlay wrapper
+        // around scaledToFill images). The container + sizingOptions below are
+        // defense-in-depth for the AppKit side.
         let view = content(mode)
 
-        if let controller = hostingController {
+        let controller: NSHostingController<AnyView>
+        if let existing = hostingController {
             // Reuse the controller and just swap the root view so we never tear
             // down the hosting layer unnecessarily.
-            controller.rootView = view
-            if window.contentView !== controller.view {
-                window.contentView = controller.view
-            }
+            existing.rootView = view
+            controller = existing
         } else {
-            let controller = NSHostingController(rootView: view)
+            controller = NSHostingController(rootView: view)
+            // Don't let the hosting view adopt the content's "ideal" size
+            // (see container note below — this alone is not sufficient).
+            controller.sizingOptions = []
             hostingController = controller
-            window.contentView = controller.view
+        }
+
+        // CRITICAL: the hosting view must NOT be the contentView directly.
+        // On macOS 26 the hosting view self-sizes to the SwiftUI content's
+        // ideal size — with the square landscape artwork that's a 1920×1920
+        // square, vertically centered (y = -420 on a 1080p screen), which
+        // throws every padding-anchored child (clock, chrome, transport)
+        // into the clipped overflow bands — invisible on screen. Wrapping it
+        // in a plain NSView and pinning with autoresizing masks (which ignore
+        // intrinsic size, unlike constraints) forces window-sized layout.
+        if controller.view.window !== window {
+            let container = NSView(frame: NSRect(origin: .zero, size: window.frame.size))
+            container.autoresizingMask = [.width, .height]
+            controller.view.translatesAutoresizingMaskIntoConstraints = true
+            controller.view.autoresizingMask = [.width, .height]
+            controller.view.frame = container.bounds
+            container.addSubview(controller.view)
+            window.contentView = container
+        } else if let container = controller.view.superview {
+            // Re-pin after any rehost so a stale ideal-size frame can't stick.
+            controller.view.frame = container.bounds
         }
         // Let the hosted SwiftUI content show through the transparent window.
         window.contentView?.wantsLayer = true

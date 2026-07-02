@@ -12,6 +12,58 @@ import AppKit
 @MainActor
 enum SnapshotRenderer {
 
+    /// `--dump-live [out.png]`: capture the REAL on-screen window's view
+    /// hierarchy (TimelineView, materials placeholders and all) a few seconds
+    /// after launch, then quit. Uses `bitmapImageRepForCachingDisplay`, which
+    /// needs no screen-recording permission because we only render our own
+    /// view tree. Call from `applicationDidFinishLaunching`.
+    static func scheduleLiveDumpIfRequested() {
+        let args = ProcessInfo.processInfo.arguments
+        guard let flagIndex = args.firstIndex(of: "--dump-live") else { return }
+        let outPath = args.indices.contains(flagIndex + 1)
+            ? args[flagIndex + 1]
+            : NSTemporaryDirectory() + "vinylpod-live.png"
+
+        // The main widget window is created after launch; poll until a
+        // real-sized window exists (the 326pt menu-bar extra doesn't count).
+        var attempts = 0
+        func tryDump() {
+            attempts += 1
+            guard let window = NSApp.windows.first(where: { $0.frame.width > 800 }),
+                  let view = window.contentView,
+                  let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else {
+                if attempts < 20 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { tryDump() }
+                } else {
+                    FileHandle.standardError.write(Data("dump-live: no widget window after \(attempts)s\n".utf8))
+                    exit(1)
+                }
+                return
+            }
+            view.cacheDisplay(in: view.bounds, to: rep)
+            // Also dump the layer tree with frames for coordinate forensics.
+            var treeLines: [String] = []
+            func walk(_ layer: CALayer, depth: Int) {
+                let cls = String(describing: type(of: layer))
+                let f = layer.frame
+                treeLines.append(String(repeating: "  ", count: depth) + "\(cls) frame=(\(Int(f.origin.x)),\(Int(f.origin.y)) \(Int(f.width))x\(Int(f.height))) hidden=\(layer.isHidden) opacity=\(layer.opacity)")
+                for sub in layer.sublayers ?? [] { walk(sub, depth: depth + 1) }
+            }
+            if let rootLayer = view.layer { walk(rootLayer, depth: 0) }
+            try? treeLines.joined(separator: "\n").write(toFile: outPath + ".layers.txt", atomically: true, encoding: .utf8)
+            guard let png = rep.representation(using: .png, properties: [:]) else { exit(1) }
+            do {
+                try png.write(to: URL(fileURLWithPath: outPath))
+                print("dump-live: wrote \(outPath) (\(Int(view.bounds.width))x\(Int(view.bounds.height)))")
+                exit(0)
+            } catch {
+                FileHandle.standardError.write(Data("dump-live: \(error)\n".utf8))
+                exit(1)
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { tryDump() }
+    }
+
     /// Call first thing at startup; returns normally unless the flag is present,
     /// in which case it writes the PNG and terminates the process.
     static func runIfRequested() {

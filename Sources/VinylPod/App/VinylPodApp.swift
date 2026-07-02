@@ -77,6 +77,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // the WindowManager's window are the only surfaces.
         NSApp.setActivationPolicy(.accessory)
 
+        // Dev tool: `--dump-live [out.png]` captures the real window then quits.
+        SnapshotRenderer.scheduleLiveDumpIfRequested()
+
         let env = AppEnvironment.shared
 
         // --- Wire the Audio module into the central NowPlayingService ---------
