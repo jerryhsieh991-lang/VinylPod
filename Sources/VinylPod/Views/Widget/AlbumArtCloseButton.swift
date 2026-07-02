@@ -94,7 +94,11 @@ struct AlbumArtCloseButton: View {
         } else {
             // All visual styles (vinyl / image / cassette / liquid disc) render
             // through the shared reactive container.
-            MusicVisualizerContainerView(artwork: artwork, cornerRadius: cornerRadius)
+            MusicVisualizerContainerView(artwork: artwork,
+                                         cornerRadius: cornerRadius,
+                                         isPlaying: nowPlaying.isPlaying,
+                                         trackTitle: nowPlaying.track.title,
+                                         trackArtist: nowPlaying.track.artist)
         }
     }
 
