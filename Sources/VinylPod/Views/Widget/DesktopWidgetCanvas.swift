@@ -261,7 +261,10 @@ struct DesktopWidgetCanvas: View {
     }
 
     private var countdownBlock: some View {
-        TimelineView(.periodic(from: .now, by: 0.1)) { context in
+        // Clock mode only shows HH:MM — ticking it at 10 Hz repainted a 138 pt
+        // heavy text block ten times a second for nothing. Countdown keeps the
+        // 0.1 s cadence for its centisecond sub-display.
+        TimelineView(.periodic(from: .now, by: timerMode == .time ? 1.0 : 0.1)) { context in
             let parts = timerParts(at: context.date)
             HStack(alignment: .lastTextBaseline, spacing: 14) {
                 Text(parts.main)
@@ -428,10 +431,18 @@ struct DesktopWidgetCanvas: View {
                 .rotationEffect(.degrees(recordRotation))
                 .offset(x: 112, y: 22)
 
+            // Tonearm pivot must stay ON-SCREEN: the old fixed offset(y: -300)
+            // put the pivot at 0.465h − 560, i.e. above the top edge on every
+            // display shorter than ~1200 pt — leaving a floating rod and a
+            // detached headshell. Everything is now derived from recordSize,
+            // and scale → rotate → offset ordering keeps the rotation anchored
+            // at the visible pivot disc (offset-before-rotate spins around the
+            // pre-offset layout frame instead).
             tonearm
                 .frame(width: 250, height: 520)
-                .offset(x: min(500, size.width * 0.255), y: -300)
+                .scaleEffect(recordSize / 420, anchor: .top)
                 .rotationEffect(.degrees(nowPlaying.isPlaying ? 10 : -8), anchor: .top)
+                .offset(x: 112 + recordSize * 0.58, y: 282 - recordSize * 0.60)
                 .animation(.spring(response: 0.65, dampingFraction: 0.78), value: nowPlaying.isPlaying)
                 .onTapGesture { tonearmIsWhite.toggle() }
         }
@@ -542,11 +553,14 @@ struct DesktopWidgetCanvas: View {
                 .offset(y: 68)
                 .shadow(color: .black.opacity(0.24), radius: 6, x: 4, y: 5)
 
+            // Headshell hangs off the END of the rod (rod spans y 68–458, so
+            // starting at 412 gives a 46 pt overlap). The old x:66 offset left
+            // it floating disconnected beside the rod.
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(armColor)
                 .frame(width: 34, height: 88)
-                .rotationEffect(.degrees(-8))
-                .offset(x: 66, y: 420)
+                .rotationEffect(.degrees(-9), anchor: .top)
+                .offset(x: 2, y: 412)
                 .shadow(color: .black.opacity(0.28), radius: 7, x: 0, y: 6)
         }
     }
