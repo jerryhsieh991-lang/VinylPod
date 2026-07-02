@@ -2,17 +2,39 @@
 # Bundles the SPM executable into a runnable macOS .app.
 # Needed because we build with Command Line Tools (no Xcode / xcodebuild),
 # so `swift build` produces a bare binary, not an app bundle.
-set -e
+set -euo pipefail
 cd "$(dirname "$0")"
 
 CONFIG="${1:-release}"
 APP="dist/VinylPod.app"
 BIN_NAME="VinylPod"
 
-echo "▶ Building ($CONFIG)…"
-swift build -c "$CONFIG" 2>&1 | grep -Ev "ld: warning|search path" | tail -3
+# --- SPM scratch path -------------------------------------------------------
+# Keep the .build tree OUT of the repo so iCloud never tries to sync the
+# thousands of intermediate object files. Per-checkout subdir so the main
+# repo and its worktrees don't clobber each other's caches.
+# Override with VINYLPOD_SCRATCH if needed.
+CHECKOUT_ID="$(basename "$PWD")-$(printf '%s' "$PWD" | cksum | cut -d' ' -f1)"
+SCRATCH="${VINYLPOD_SCRATCH:-$HOME/.cache/vinylpod-build/$CHECKOUT_ID}"
 
-BIN_PATH="$(swift build -c "$CONFIG" --show-bin-path)/$BIN_NAME"
+case "$SCRATCH" in
+    "$HOME/Desktop/"*|"$HOME/Documents/"*|"$HOME/Library/Mobile Documents/"*)
+        echo "✗ scratch path ($SCRATCH) is inside an iCloud-synced folder; refusing." >&2
+        exit 1 ;;
+esac
+mkdir -p "$SCRATCH"
+
+# A leftover in-repo .build is never used (we always pass --scratch-path),
+# but it WOULD keep syncing to iCloud — warn so it gets deleted.
+if [ -d .build ]; then
+    echo "⚠ stale ./.build exists in the repo — delete it: rm -rf \"$PWD/.build\"" >&2
+fi
+
+echo "▶ Building ($CONFIG) → scratch: $SCRATCH"
+swift build -c "$CONFIG" --scratch-path "$SCRATCH" 2>&1 \
+    | grep -Ev "ld: warning|search path" | tail -3
+
+BIN_PATH="$(swift build -c "$CONFIG" --scratch-path "$SCRATCH" --show-bin-path)/$BIN_NAME"
 [ -f "$BIN_PATH" ] || { echo "✗ binary not found at $BIN_PATH"; exit 1; }
 
 echo "▶ Assembling $APP…"
