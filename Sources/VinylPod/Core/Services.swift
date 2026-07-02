@@ -63,6 +63,11 @@ final class NowPlayingService: ObservableObject {
     private var queue: [URL] = []
     private var index: Int = 0
 
+    /// OPTIONAL native desktop-app (Spotify/Music) capture, only alive while the
+    /// `nativeCaptureEnabled` setting is on. The browser bridge remains the
+    /// default source; this merely supplements it when explicitly enabled.
+    private var nativeCapture: NativeMediaRemoteCapture?
+
     init() {}
 
     /// Load a list of local files and start playing the first.
@@ -110,6 +115,57 @@ final class NowPlayingService: ObservableObject {
     /// Called by BrowserBridge when an extension client connects/disconnects.
     func setBridgeConnected(_ connected: Bool) {
         if bridgeConnected != connected { bridgeConnected = connected }
+    }
+
+    /// Start or stop the OPTIONAL native desktop-app capture based on the
+    /// `nativeCaptureEnabled` setting. Idempotent: safe to call whenever the
+    /// toggle changes. When enabled, the adapter's callback is routed into the
+    /// existing external-update path (same one the browser bridge uses), tagged
+    /// with `.spotify` or `.appleMusic` when determinable. When disabled it
+    /// tears the adapter down, and nothing about the default browser-bridge
+    /// behavior changes.
+    ///
+    /// - Note: The native adapter pushes at ≤ 1 Hz and only on real change, so
+    ///   this respects the `position` @Published perf invariant.
+    func attachNativeCapture(settings: AppSettings) {
+        if settings.nativeCaptureEnabled {
+            guard nativeCapture == nil else { return }
+            let capture = NativeMediaRemoteCapture()
+            capture.onUpdate = { [weak self] snap in
+                guard let self else { return }
+                // Only supplement — never override an active local-file playback.
+                if self.track.source == .localFile { return }
+
+                let source: PlaybackSource
+                switch snap.bundleIdentifier {
+                case "com.apple.Music":   source = .appleMusic
+                case "com.spotify.client": source = .spotify
+                default:                   source = .spotify
+                }
+                var t = Track()
+                t.title = snap.title
+                t.artist = snap.artist
+                t.album = snap.album
+                t.duration = snap.duration
+                t.source = source
+                self.updateFromExternal(t,
+                                        isPlaying: snap.isPlaying,
+                                        position: snap.elapsed,
+                                        duration: snap.duration)
+            }
+            nativeCapture = capture
+            capture.start()
+        } else {
+            nativeCapture?.stop()
+            nativeCapture = nil
+        }
+    }
+
+    /// Whether the live native adapter has actually observed data from
+    /// MediaRemote (false when entitlement-gated / unavailable). Read by the
+    /// capture settings UI for its live indicator.
+    var nativeCaptureDidReceiveData: Bool {
+        nativeCapture?.didReceiveData ?? false
     }
 
     func playPause() {
@@ -218,12 +274,28 @@ final class AppSettings: ObservableObject {
             WindowCoordinator.shared.manager?.syncDynamicIsland()
         }
     }
-    @Published var showInMenuBar     = true  { didSet { persist("showInMenuBar", showInMenuBar) } }
+    @Published var showInMenuBar     = true  {
+        didSet {
+            // Re-writes of the same value happen on every SwiftUI scene pass via
+            // MenuBarExtra(isInserted:); persisting each one turns a no-op into
+            // real work inside the render loop.
+            guard showInMenuBar != oldValue else { return }
+            persist("showInMenuBar", showInMenuBar)
+        }
+    }
     @Published var launchAtLogin     = false { didSet { persist("launchAtLogin", launchAtLogin) } }
     @Published var showArtworkInDock = false { didSet { persist("showArtworkInDock", showArtworkInDock) } }
     @Published var hideDockIcon      = true  { didSet { persist("hideDockIcon", hideDockIcon) } }
     @Published var coverArtAsWallpaper = false { didSet { persist("coverArtAsWallpaper", coverArtAsWallpaper) } }
     @Published var hideNotchInFullscreen = false { didSet { persist("hideNotchInFullscreen", hideNotchInFullscreen) } }
+
+    /// OPTIONAL, EXPERIMENTAL: capture Now Playing directly from desktop apps
+    /// (Spotify.app / Music.app) via the private MediaRemote framework. OFF by
+    /// default — the browser extension remains the default capture path. May be
+    /// a no-op on macOS 15.4+ where MediaRemote is entitlement-gated.
+    @Published var nativeCaptureEnabled = false {
+        didSet { UserDefaults.standard.set(nativeCaptureEnabled, forKey: "settings.nativeCaptureEnabled") }
+    }
 
     private func persist(_ key: String, _ value: Bool) {
         UserDefaults.standard.set(value, forKey: key)
@@ -254,6 +326,7 @@ final class AppSettings: ObservableObject {
         hideDockIcon      = Self.bool("hideDockIcon", default: true)
         coverArtAsWallpaper = Self.bool("coverArtAsWallpaper", default: false)
         hideNotchInFullscreen = Self.bool("hideNotchInFullscreen", default: false)
+        nativeCaptureEnabled = Self.bool("settings.nativeCaptureEnabled", default: false)
     }
 
     func setAccent(from color: Color?) {

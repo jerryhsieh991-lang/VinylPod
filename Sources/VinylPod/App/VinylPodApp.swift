@@ -25,7 +25,18 @@ struct VinylPodApp: App {
         // `isInserted` binds the menu-bar item's presence to the setting. (If it's
         // hidden, SettingsEffects forces the Dock icon on so there's still an
         // entry point.)
-        MenuBarExtra(isInserted: $settings.showInMenuBar) {
+        //
+        // The binding is wrapped so no-op write-backs are dropped: MenuBarExtra
+        // re-sets `isInserted` during scene evaluation, and an unconditional
+        // setter would fire objectWillChange → re-evaluate → set again, pinning
+        // the app at 100% CPU under any burst of unrelated UI invalidations.
+        MenuBarExtra(isInserted: Binding(
+            get: { settings.showInMenuBar },
+            set: { newValue in
+                guard settings.showInMenuBar != newValue else { return }
+                settings.showInMenuBar = newValue
+            }
+        )) {
             MenuBarContentView()
                 .environmentObject(env.nowPlaying)
                 .environmentObject(env.settings)
@@ -230,6 +241,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Match the typed character against each mode's shortcut digit.
             guard let chars = event.charactersIgnoringModifiers, chars.count == 1,
                   let digit = chars.first else { return event }
+
+            // ⌘, → open the tabbed Settings window (standard macOS shortcut).
+            if digit == "," {
+                SettingsWindowController.shared.show(settings: AppEnvironment.shared.settings)
+                return nil // Consume — handled.
+            }
 
             if let mode = WindowMode.allCases.first(where: { $0.shortcutKey == digit }) {
                 WindowCoordinator.shared.manager?.apply(mode: mode)

@@ -23,6 +23,24 @@ final class BrowserBridge {
     private var lastArtworkURL: String?
     private var lastArtworkImage: NSImage?
 
+    // Coalescing slot for inbound nowplaying messages (touched only on `queue`).
+    // A flood of frames overwrites the slot; at most one flush per interval
+    // reaches the main actor, so the UI only ever renders the latest state.
+    private var pendingUpdate: PendingUpdate?
+    private var flushScheduled = false
+    private static let flushInterval: TimeInterval = 0.1
+
+    private struct PendingUpdate {
+        let title: String
+        let artist: String
+        let album: String
+        let artwork: String?
+        let isPlaying: Bool
+        let currentTime: Double
+        let duration: Double
+        let source: PlaybackSource
+    }
+
     init(nowPlaying: NowPlayingService, port: UInt16 = 8787) {
         self.nowPlaying = nowPlaying
         self.port = NWEndpoint.Port(rawValue: port) ?? 8787
@@ -107,14 +125,40 @@ final class BrowserBridge {
               let title = p.title, !title.isEmpty, title.count <= 2048
         else { return }   // ignore null/"gone" so we never clobber a local track
 
-        let source = Self.mapSource(p.source)
-        let artist = p.artist ?? ""
-        let album = p.album ?? ""
-        let isPlaying = p.isPlaying ?? false
-        let currentTime = p.currentTime ?? 0
-        let duration = p.duration ?? 0
+        // Coalesce: overwrite the pending slot with the latest frame and flush at
+        // most once per interval. Without this, a flood (the extension can emit
+        // hundreds of frames/s) enqueues one MainActor task per frame and the UI
+        // spends minutes replaying stale updates after the flood ends.
+        pendingUpdate = PendingUpdate(
+            title: title,
+            artist: p.artist ?? "",
+            album: p.album ?? "",
+            artwork: p.artwork,
+            isPlaying: p.isPlaying ?? false,
+            currentTime: p.currentTime ?? 0,
+            duration: p.duration ?? 0,
+            source: Self.mapSource(p.source)
+        )
+        scheduleFlush()
+    }
 
-        loadArtwork(p.artwork) { [weak self] image in
+    /// Called on `queue`. Arms a single delayed flush; further frames arriving
+    /// before it fires just overwrite `pendingUpdate` and are never dispatched.
+    private func scheduleFlush() {
+        guard !flushScheduled else { return }
+        flushScheduled = true
+        queue.asyncAfter(deadline: .now() + Self.flushInterval) { [weak self] in
+            guard let self else { return }
+            self.flushScheduled = false
+            guard let u = self.pendingUpdate else { return }
+            self.pendingUpdate = nil
+            self.dispatch(u)
+        }
+    }
+
+    /// Pushes one coalesced update to the main-actor service. Called on `queue`.
+    private func dispatch(_ u: PendingUpdate) {
+        loadArtwork(u.artwork) { [weak self] image in
             guard let self else { return }
             Task { @MainActor in
                 // Show whatever the extension sends. It already aggregates to the
@@ -124,12 +168,12 @@ final class BrowserBridge {
                 // which read as "nothing works". The setting stays a soft
                 // preference in the picker UI, not a drop here. Local files never
                 // reach this path, so they're unaffected.
-                let track = Track(title: title, artist: artist, album: album,
-                                  artwork: image, duration: duration,
-                                  source: source, url: nil)
-                self.nowPlaying.updateFromExternal(track, isPlaying: isPlaying,
-                                                   position: currentTime,
-                                                   duration: duration)
+                let track = Track(title: u.title, artist: u.artist, album: u.album,
+                                  artwork: image, duration: u.duration,
+                                  source: u.source, url: nil)
+                self.nowPlaying.updateFromExternal(track, isPlaying: u.isPlaying,
+                                                   position: u.currentTime,
+                                                   duration: u.duration)
             }
         }
     }
