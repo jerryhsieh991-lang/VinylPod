@@ -47,3 +47,8 @@ format = flat-array JSON ["action",{combo}] (decode verified in isolation;
 hardware-key firing needs 10s manual check — synthetic events need TCC).
 NEW: tab-slide settings menu (MenuPage push/pop, trailing-edge slide).
 NEW: root features.json aggregating the 8 per-surface JSONs (198 leaf entries).
+E2E size-switching harness: JXA -1700 crashes fixed (safeString guards,
+process-scoped click-at, .click() coordinate fallback, paged-menu step).
+Remaining blocker is APP-side: widget NSPanels expose no AX children →
+Settings trigger unreachable headlessly. Sizes verified via CGWindowList
+smoke instead (5/5 modes, exact defaultSize match).

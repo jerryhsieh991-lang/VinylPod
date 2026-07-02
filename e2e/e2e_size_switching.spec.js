@@ -150,6 +150,10 @@ function safeValue(element, key) {
   }
 }
 
+function safeString(value) {
+  try { return String(value) } catch (_) { return "" }   // JXA coercion can throw -1700
+}
+
 function safeArray(element, key) {
   const value = safeValue(element, key)
   if (!value) return null
@@ -269,10 +273,10 @@ function findNamedButton(root, names) {
     if (seen[id]) continue
     seen[id] = true
 
-    const role = String(safeValue(element, "role") || "").toLowerCase()
-    const name = String(safeValue(element, "name") || "").toLowerCase()
-    const description = String(safeValue(element, "description") || "").toLowerCase()
-    const title = String(safeValue(element, "title") || "").toLowerCase()
+    const role = safeString(safeValue(element, "role") || "").toLowerCase()
+    const name = safeString(safeValue(element, "name") || "").toLowerCase()
+    const description = safeString(safeValue(element, "description") || "").toLowerCase()
+    const title = safeString(safeValue(element, "title") || "").toLowerCase()
 
     const text = [name, description, title].filter(Boolean)
     if (role.includes("button") && text.some(value => wanted.includes(value))) {
@@ -350,9 +354,9 @@ function textExists(text) {
     if (seen[id]) continue
     seen[id] = true
 
-    const name = String(safeValue(element, "name") || "").toLowerCase()
-    const description = String(safeValue(element, "description") || "").toLowerCase()
-    const value = String(safeValue(element, "value") || "").toLowerCase()
+    const name = safeString(safeValue(element, "name") || "").toLowerCase()
+    const description = safeString(safeValue(element, "description") || "").toLowerCase()
+    const value = safeString(safeValue(element, "value") || "").toLowerCase()
     if ([name, description, value].some(candidate => candidate.includes(wanted))) return true
 
     ;["buttons", "radioButtons", "checkboxes", "menuItems", "staticTexts", "groups", "scrollAreas", "popOvers", "windows", "uiElements"].forEach(kind => {
