@@ -407,7 +407,7 @@ final class WindowManager {
         // Keep the AppKit host frame in lockstep with DynamicIslandWidget's
         // SwiftUI surface. A stale oversized panel leaves invisible hit area
         // around the island and makes expansion/settings clicks feel laggy.
-        let size = expanded ? CGSize(width: 402, height: 594) : CGSize(width: 326, height: 36)
+        let size = expanded ? CGSize(width: 352, height: 512) : CGSize(width: 252, height: 30)
         let topInset: CGFloat = expanded ? 0 : 3
         let origin = NSPoint(
             x: screen.midX - size.width / 2,

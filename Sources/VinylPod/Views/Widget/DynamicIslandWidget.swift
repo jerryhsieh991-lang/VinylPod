@@ -24,10 +24,10 @@ struct DynamicIslandWidget: View {
     @VPState private var expanded = false
     @VPState private var compactHovered = false
 
-    private let compactSize = CGSize(width: 326, height: 36)
-    private let expandedSize = CGSize(width: 402, height: 594)
-    private let expandedPanelSize = CGSize(width: 386, height: 536)
-    private let expandedPanelTopPadding: CGFloat = 48
+    private let compactSize = CGSize(width: 252, height: 30)
+    private let expandedSize = CGSize(width: 352, height: 512)
+    private let expandedPanelSize = CGSize(width: 336, height: 460)
+    private let expandedPanelTopPadding: CGFloat = 42
     private let islandAnimation = Animation.spring(response: 0.44, dampingFraction: 0.86, blendDuration: 0.10)
 
     var body: some View {
@@ -61,7 +61,7 @@ struct DynamicIslandWidget: View {
     // MARK: - Compact island
 
     private var compactPill: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Button {
                 toggleExpanded()
             } label: {
@@ -74,14 +74,14 @@ struct DynamicIslandWidget: View {
             SettingsMenuButton(
                 onSelectSize: onSelectSize,
                 onQuit: onQuit,
-                triggerSize: 24,
-                glyphSize: 12,
+                triggerSize: 20,
+                glyphSize: 10,
                 triggerFill: Color.black.opacity(compactHovered ? 0.34 : 0.24),
                 triggerStroke: Color.white.opacity(compactHovered ? 0.34 : 0.26),
                 triggerForeground: Color.white.opacity(0.96)
             )
         }
-        .padding(.leading, 10)
+        .padding(.leading, 8)
         .padding(.trailing, 4)
         .frame(width: compactSize.width, height: compactSize.height)
         .background(IslandCapsuleGlass(palette: settings.albumPalette, highlighted: compactHovered || expanded))
@@ -127,13 +127,13 @@ struct DynamicIslandWidget: View {
                         endPoint: .bottom
                     )
                 )
-                .frame(width: 58, height: 30)
-                .offset(y: -13)
+                .frame(width: 50, height: 26)
+                .offset(y: -11)
                 .shadow(color: .black.opacity(0.22), radius: 9, x: 0, y: 4)
 
-            IslandPanelGlass(palette: settings.albumPalette, cornerRadius: 32)
+            IslandPanelGlass(palette: settings.albumPalette, cornerRadius: 28)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 32, style: .continuous)
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
                         .strokeBorder(
                             LinearGradient(
                                 colors: [
@@ -197,10 +197,10 @@ private struct IslandCompactMetadata: View, Equatable {
 
     var body: some View {
         HStack(spacing: 10) {
-            IslandArtwork(artwork: snapshot.artwork, size: 24, cornerRadius: 7)
+            IslandArtwork(artwork: snapshot.artwork, size: 20, cornerRadius: 6)
 
             Text(snapshot.compactTitle)
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .font(.system(size: 12.5, weight: .semibold, design: .rounded))
                 .foregroundStyle(Color.white.opacity(0.95))
                 .lineLimit(1)
                 .shadow(color: .black.opacity(0.24), radius: 1, y: 1)
@@ -208,7 +208,7 @@ private struct IslandCompactMetadata: View, Equatable {
             Spacer(minLength: 6)
 
             EqualizerBars(active: snapshot.isPlaying, barColor: Color.white.opacity(0.68), compact: true)
-                .frame(width: 28, height: 16)
+                .frame(width: 22, height: 13)
 
             Image(systemName: expanded ? "chevron.up" : "chevron.down")
                 .font(.system(size: 9, weight: .bold))
@@ -237,8 +237,8 @@ private struct IslandExpandedContent: View {
             IslandExpandedMetadata(snapshot: snapshot, panelSize: panelSize)
                 .equatable()
 
-            VStack(spacing: 22) {
-                Spacer().frame(height: 372)
+            VStack(spacing: 16) {
+                Spacer().frame(height: 330)
                 IslandTimeRow()
                 IslandTransportControls(
                     isPlaying: snapshot.isPlaying,
@@ -252,21 +252,21 @@ private struct IslandExpandedContent: View {
             .frame(width: panelSize.width, height: panelSize.height)
 
             EqualizerBars(active: snapshot.isPlaying, barColor: Color.white.opacity(0.46), compact: false)
-                .frame(width: 44, height: 46)
-                .padding(.top, 424)
-                .padding(.trailing, 28)
+                .frame(width: 36, height: 38)
+                .padding(.top, 356)
+                .padding(.trailing, 22)
 
             SettingsMenuButton(
                 onSelectSize: onSelectSize,
                 onQuit: onQuit,
-                triggerSize: 30,
-                glyphSize: 14,
+                triggerSize: 26,
+                glyphSize: 12,
                 triggerFill: Color.black.opacity(0.28),
                 triggerStroke: Color.white.opacity(0.34),
                 triggerForeground: Color.white.opacity(0.96)
             )
-            .padding(.top, 16)
-            .padding(.trailing, 16)
+            .padding(.top, 12)
+            .padding(.trailing, 12)
         }
     }
 }
@@ -323,28 +323,28 @@ private struct IslandExpandedMetadata: View, Equatable {
     var body: some View {
         VStack(spacing: 0) {
             IslandSourceChip(snapshot: snapshot)
-                .padding(.top, 24)
-
-            IslandArtwork(artwork: snapshot.artwork, size: 238, cornerRadius: 26)
                 .padding(.top, 18)
 
-            Spacer().frame(height: 22)
+            IslandArtwork(artwork: snapshot.artwork, size: 196, cornerRadius: 22)
+                .padding(.top, 14)
 
-            VStack(spacing: 8) {
+            Spacer().frame(height: 16)
+
+            VStack(spacing: 6) {
                 Text(snapshot.primaryLine)
-                    .font(.system(size: 28, weight: .semibold, design: .rounded))
+                    .font(.system(size: 24, weight: .semibold, design: .rounded))
                     .foregroundStyle(Color.white.opacity(0.98))
                     .lineLimit(1)
                     .minimumScaleFactor(0.70)
-                    .frame(width: 320)
+                    .frame(width: 284)
                     .shadow(color: .black.opacity(0.24), radius: 2, y: 1)
 
                 Text(snapshot.secondaryLine)
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundStyle(Color.white.opacity(0.70))
                     .lineLimit(1)
                     .minimumScaleFactor(0.78)
-                    .frame(width: 292)
+                    .frame(width: 256)
                     .shadow(color: .black.opacity(0.24), radius: 2, y: 1)
             }
 
