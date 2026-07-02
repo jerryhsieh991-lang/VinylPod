@@ -28,6 +28,13 @@ struct SettingsMenuButton: View {
 
     @VPState private var open = false
     @VPState private var triggerHovered = false
+    @VPState private var page: MenuPage = .root
+
+    /// One sliding page of the dropdown. `root` hosts the quick rows; the radio
+    /// sections live on sub-pages that push in from the trailing edge.
+    private enum MenuPage: Equatable {
+        case root, size, vinylStyle, glass
+    }
 
     // Layout constants for the dropdown panel.
     private let menuWidth: CGFloat = 242
@@ -66,6 +73,7 @@ struct SettingsMenuButton: View {
 
     private var trigger: some View {
         Button {
+            page = .root   // always reopen on the root page, without animating
             withAnimation(dropdownAnimation) { open.toggle() }
         } label: {
             Image(systemName: "ellipsis")
@@ -94,10 +102,25 @@ struct SettingsMenuButton: View {
 
     private var dropdown: some View {
         ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                menuContent
+            // Tab-slide pages: the root pushes sub-pages in from the trailing
+            // edge (native submenu push/pop). Only one page is mounted at a
+            // time; `.clipped()` keeps the slide inside the glass panel.
+            ZStack(alignment: .top) {
+                if page == .root {
+                    VStack(alignment: .leading, spacing: 0) { rootContent }
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .leading).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)))
+                } else {
+                    VStack(alignment: .leading, spacing: 0) { subPageContent }
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .trailing).combined(with: .opacity)))
+                }
             }
             .padding(.vertical, 6)
+            .clipped()
+            .animation(dropdownAnimation, value: page)
         }
         .frame(maxHeight: constrainedMenuMaxHeight)
         // Single light glass surface. The menu ink colors are tuned for this
@@ -153,10 +176,10 @@ struct SettingsMenuButton: View {
         )
     }
 
-    // MARK: - Menu content (exact hierarchy, top → bottom)
+    // MARK: - Root page (quick rows; radio sections push to sub-pages)
 
     @ViewBuilder
-    private var menuContent: some View {
+    private var rootContent: some View {
         // "You're a Pro" — dimmed, non-interactive status row.
         proStatusRow
 
@@ -173,17 +196,9 @@ struct SettingsMenuButton: View {
             }
         }
 
-        // Music Player Size (radio over WindowMode.allCases).
-        sectionHeader("Music Player Size")
-        ForEach(WindowMode.allCases) { mode in
-            checkRow(title: menuTitle(for: mode),
-                     checked: settings.windowMode == mode) {
-                withAnimation(VPTheme.fade) { open = false }
-                guard settings.windowMode != mode else { return }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) {
-                    onSelectSize(mode)
-                }
-            }
+        chevronRow(title: "Music Player Size",
+                   value: menuTitle(for: settings.windowMode)) {
+            withAnimation(dropdownAnimation) { page = .size }
         }
 
         divider
@@ -196,26 +211,18 @@ struct SettingsMenuButton: View {
             settings.showInMenuBar.toggle()
         }
 
-        // Vinyl Style (radio) — one row per case so new visual modes appear
-        // here automatically.
-        sectionHeader("Vinyl Style")
-        ForEach(VinylStyle.allCases) { style in
-            checkRow(title: style.displayName,
-                     checked: settings.vinylStyle == style) {
-                settings.vinylStyle = style
-            }
+        chevronRow(title: "Vinyl Style",
+                   value: settings.vinylStyle.displayName) {
+            withAnimation(dropdownAnimation) { page = .vinylStyle }
         }
 
         checkRow(title: "Show progress", checked: settings.showProgress) {
             settings.showProgress.toggle()
         }
 
-        sectionHeader("Liquid Glass")
-        ForEach(GlassTintStrength.allCases) { strength in
-            checkRow(title: strength.displayName,
-                     checked: settings.glassTintStrength == strength) {
-                settings.glassTintStrength = strength
-            }
+        chevronRow(title: "Liquid Glass",
+                   value: settings.glassTintStrength.displayName) {
+            withAnimation(dropdownAnimation) { page = .glass }
         }
 
         divider
@@ -259,6 +266,112 @@ struct SettingsMenuButton: View {
             withAnimation(VPTheme.fade) { open = false }
             onQuit()
         }
+    }
+
+    // MARK: - Sub-pages (slide in from the trailing edge)
+
+    @ViewBuilder
+    private var subPageContent: some View {
+        switch page {
+        case .size:
+            backHeader("Music Player Size")
+            ForEach(WindowMode.allCases) { mode in
+                checkRow(title: menuTitle(for: mode),
+                         checked: settings.windowMode == mode) {
+                    withAnimation(VPTheme.fade) { open = false }
+                    guard settings.windowMode != mode else { return }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) {
+                        onSelectSize(mode)
+                    }
+                }
+            }
+        case .vinylStyle:
+            backHeader("Vinyl Style")
+            ForEach(VinylStyle.allCases) { style in
+                checkRow(title: style.displayName,
+                         checked: settings.vinylStyle == style) {
+                    settings.vinylStyle = style
+                    withAnimation(dropdownAnimation) { page = .root }
+                }
+            }
+        case .glass:
+            backHeader("Liquid Glass")
+            ForEach(GlassTintStrength.allCases) { strength in
+                checkRow(title: strength.displayName,
+                         checked: settings.glassTintStrength == strength) {
+                    settings.glassTintStrength = strength
+                    withAnimation(dropdownAnimation) { page = .root }
+                }
+            }
+        case .root:
+            EmptyView()   // never mounted: the ZStack only shows sub-pages here
+        }
+    }
+
+    /// Navigation row that pushes a sub-page: title, current value, chevron.
+    private func chevronRow(title: String,
+                            value: String,
+                            action: @escaping () -> Void) -> some View {
+        HoverRow {
+            action()
+        } content: { hovered in
+            HStack(spacing: 8) {
+                Color.clear.frame(width: 16, height: 1)   // check-column gutter
+                Text(title)
+                    .font(VPTheme.body(13))
+                    .foregroundColor(menuInk)
+                    .shadow(color: .white.opacity(0.35), radius: 0.5, x: 0, y: 1)
+                Spacer(minLength: 0)
+                Text(value)
+                    .font(VPTheme.caption())
+                    .foregroundColor(menuMutedInk)
+                    .lineLimit(1)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(menuSecondaryInk)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: VPTheme.radiusSmall, style: .continuous)
+                    .fill(hovered ? menuHoverFill : Color.clear)
+                    .padding(.horizontal, 4)
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        // Deterministic AX name — the e2e harness looks buttons up by exact
+        // title, and the concatenated row text would include the value.
+        .accessibilityLabel(title)
+    }
+
+    /// Sub-page header: a back chevron + page title; pops back to the root.
+    private func backHeader(_ title: String) -> some View {
+        HoverRow {
+            withAnimation(dropdownAnimation) { page = .root }
+        } content: { hovered in
+            HStack(spacing: 8) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(menuCheckInk)
+                    .frame(width: 16, alignment: .center)
+                Text(title)
+                    .font(VPTheme.body(13).weight(.semibold))
+                    .foregroundColor(menuInk)
+                    .shadow(color: .white.opacity(0.35), radius: 0.5, x: 0, y: 1)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(
+                RoundedRectangle(cornerRadius: VPTheme.radiusSmall, style: .continuous)
+                    .fill(hovered ? menuHoverFill : Color.clear)
+                    .padding(.horizontal, 4)
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .accessibilityLabel("Back")
     }
 
     /// "Appearance" row label, showing the current accent state.
