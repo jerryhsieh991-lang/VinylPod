@@ -23,12 +23,24 @@ final class BrowserBridge {
     private var lastArtworkURL: String?
     private var lastArtworkImage: NSImage?
 
-    // Coalescing slot for inbound nowplaying messages (touched only on `queue`).
+    // Coalescing slot for inbound nowplaying frames (touched only on `queue`).
     // A flood of frames overwrites the slot; at most one flush per interval
     // reaches the main actor, so the UI only ever renders the latest state.
-    private var pendingUpdate: PendingUpdate?
+    // The slot holds the RAW frame — decoding happens once per flush, not per
+    // frame, so a flood costs an overwrite instead of a JSONDecoder pass.
+    private var pendingFrame: Data?
     private var flushScheduled = false
     private static let flushInterval: TimeInterval = 0.1
+
+    // Flood backpressure: profiling shows flood-time CPU is dominated by SwiftUI
+    // re-renders (each flush changes the track → full glass/artwork composite),
+    // not by decoding. When the PREVIOUS interval coalesced a flood of frames,
+    // stretch the next flush so the UI redraws at 2 Hz instead of 10 Hz. A real
+    // extension sends ~1 frame/s and never triggers this.
+    private var framesSinceFlush = 0
+    private var lastIntervalFrameCount = 0
+    private static let floodFramesPerInterval = 20
+    private static let floodFlushInterval: TimeInterval = 0.5
 
     private struct PendingUpdate {
         let title: String
@@ -111,7 +123,18 @@ final class BrowserBridge {
             guard let self else { return }
             if let data, !data.isEmpty { self.handle(data) }
             if error != nil { self.remove(conn); return }
-            self.receive(on: conn)   // re-arm for the next frame
+            // Flood backpressure at the socket: once the current interval has
+            // already coalesced a flood of frames, delay re-arming the receive
+            // so TCP pushes back on the sender instead of the app burning CPU
+            // on frames it will coalesce away anyway. Normal traffic (~1
+            // frame/s) never hits the threshold and re-arms immediately.
+            if self.framesSinceFlush > Self.floodFramesPerInterval {
+                self.queue.asyncAfter(deadline: .now() + Self.flushInterval) { [weak self] in
+                    self?.receive(on: conn)
+                }
+            } else {
+                self.receive(on: conn)   // re-arm for the next frame
+            }
         }
     }
 
@@ -119,17 +142,44 @@ final class BrowserBridge {
 
     private func handle(_ data: Data) {
         guard data.count <= 256 * 1024 else { return }   // H1: reject oversized frames
+        // Coalesce BEFORE decoding: overwrite the pending slot with the latest
+        // raw frame and flush at most once per interval. A flood (the extension
+        // can emit hundreds of frames/s) then costs one Data overwrite per frame
+        // instead of a full JSONDecoder pass + MainActor task per frame.
+        pendingFrame = data
+        framesSinceFlush += 1
+        scheduleFlush()
+    }
+
+    /// Called on `queue`. Arms a single delayed flush; further frames arriving
+    /// before it fires just overwrite `pendingFrame` and are never decoded.
+    private func scheduleFlush() {
+        guard !flushScheduled else { return }
+        flushScheduled = true
+        let flooded = lastIntervalFrameCount > Self.floodFramesPerInterval
+        let interval = flooded ? Self.floodFlushInterval : Self.flushInterval
+        queue.asyncAfter(deadline: .now() + interval) { [weak self] in
+            guard let self else { return }
+            self.flushScheduled = false
+            self.lastIntervalFrameCount = self.framesSinceFlush
+            self.framesSinceFlush = 0
+            guard let data = self.pendingFrame else { return }
+            self.pendingFrame = nil
+            self.decodeAndDispatch(data)
+        }
+    }
+
+    /// Decodes one coalesced frame and forwards it. Called on `queue`, at most
+    /// once per flush interval. Invalid / null / "gone" frames are dropped so we
+    /// never clobber a local track; the extension re-sends within a second.
+    private func decodeAndDispatch(_ data: Data) {
         guard let msg = try? JSONDecoder().decode(InMessage.self, from: data),
               msg.type == "nowplaying",
               let p = msg.payload,
               let title = p.title, !title.isEmpty, title.count <= 2048
-        else { return }   // ignore null/"gone" so we never clobber a local track
+        else { return }
 
-        // Coalesce: overwrite the pending slot with the latest frame and flush at
-        // most once per interval. Without this, a flood (the extension can emit
-        // hundreds of frames/s) enqueues one MainActor task per frame and the UI
-        // spends minutes replaying stale updates after the flood ends.
-        pendingUpdate = PendingUpdate(
+        dispatch(PendingUpdate(
             title: title,
             artist: p.artist ?? "",
             album: p.album ?? "",
@@ -138,22 +188,7 @@ final class BrowserBridge {
             currentTime: p.currentTime ?? 0,
             duration: p.duration ?? 0,
             source: Self.mapSource(p.source)
-        )
-        scheduleFlush()
-    }
-
-    /// Called on `queue`. Arms a single delayed flush; further frames arriving
-    /// before it fires just overwrite `pendingUpdate` and are never dispatched.
-    private func scheduleFlush() {
-        guard !flushScheduled else { return }
-        flushScheduled = true
-        queue.asyncAfter(deadline: .now() + Self.flushInterval) { [weak self] in
-            guard let self else { return }
-            self.flushScheduled = false
-            guard let u = self.pendingUpdate else { return }
-            self.pendingUpdate = nil
-            self.dispatch(u)
-        }
+        ))
     }
 
     /// Pushes one coalesced update to the main-actor service. Called on `queue`.
