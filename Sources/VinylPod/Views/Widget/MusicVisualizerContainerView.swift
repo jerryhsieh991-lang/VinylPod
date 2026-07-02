@@ -22,27 +22,54 @@ struct MusicVisualizerContainerView: View {
     let artwork: NSImage?
     /// Corner radius for the card-like styles (`.image`, `.cassette`).
     var cornerRadius: CGFloat = 5
+    /// Playback state + track identity arrive as PLAIN VALUES instead of a
+    /// whole-object `NowPlayingService` observation: the service republishes
+    /// `position` on every tick, and an `@EnvironmentObject` here would
+    /// re-evaluate this body once per tick for data it never reads. The parent
+    /// widgets already observe the service — they hand down only these three.
+    var isPlaying: Bool = false
+    var trackTitle: String = ""
+    var trackArtist: String = ""
 
     @EnvironmentObject private var settings: AppSettings
-    @EnvironmentObject private var nowPlaying: NowPlayingService
 
     var body: some View {
         // Exhaustive on purpose: a future style must be handled here, not
         // silently swallowed by a `default`.
         switch settings.vinylStyle {
         case .vinyl:
-            VinylDiskView(artwork: artwork, isSpinning: nowPlaying.isPlaying)
+            VinylDiskView(artwork: artwork,
+                          isSpinning: isPlaying,
+                          beatSeed: beatSeed)
 
         case .image:
             flatCard
 
         case .cassette:
-            CassetteDeckView(artwork: artwork, isPlaying: nowPlaying.isPlaying)
+            CassetteDeckView(artwork: artwork, isPlaying: isPlaying)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
 
         case .liquidDisc:
-            LiquidDiscView(artwork: artwork, isPlaying: nowPlaying.isPlaying)
+            LiquidDiscView(artwork: artwork,
+                           isPlaying: isPlaying,
+                           beatSeed: beatSeed,
+                           paletteKey: paletteKey)
         }
+    }
+
+    /// Per-track pulse seed so the vinyl grooves and the liquid disc agree on
+    /// the same simulated tempo for the same song.
+    private var beatSeed: UInt64 {
+        GroovePulse.seed(title: trackTitle, artist: trackArtist)
+    }
+
+    /// CONTENT-based identity for palette extraction — never pointer identity
+    /// (`ObjectIdentifier` can collide when a deallocated image's address is
+    /// reused, and re-runs needlessly for equal content). Includes the pixel
+    /// size so the high-res artwork upgrade for the SAME track re-extracts.
+    private var paletteKey: String {
+        let dims = artwork.map { "\(Int($0.size.width))x\(Int($0.size.height))" } ?? "none"
+        return "\(trackTitle)\u{1F}\(trackArtist)\u{1F}\(dims)"
     }
 
     /// The legacy flat album-art card (previous `.image` branch, verbatim).
@@ -75,15 +102,21 @@ struct MusicVisualizerContainerView: View {
 enum AsyncArtworkPalette {
 
     /// Extract the full four-color palette off the main actor.
-    static func palette(from artwork: NSImage) async -> AlbumColorPalette? {
-        ArtworkColorExtractor.paletteOffMain(from: artwork)
+    ///
+    /// Takes a `Data` snapshot (e.g. `tiffRepresentation`) rather than the
+    /// `NSImage` itself: `NSImage` is a non-Sendable reference type the main
+    /// actor keeps drawing with, so it must never cross the actor boundary.
+    /// The `NSImage` decoded here is task-local and never escapes.
+    static func palette(fromArtworkData data: Data) async -> AlbumColorPalette? {
+        guard let image = NSImage(data: data) else { return nil }
+        return ArtworkColorExtractor.paletteOffMain(from: image)
     }
 
     /// Primary/secondary/tertiary colors for ambient rendering, ordered
     /// strongest-first. Falls back to the built-in palette when the artwork
-    /// yields nothing usable.
-    static func liquidColors(from artwork: NSImage) async -> [RGBColorToken] {
-        let palette = ArtworkColorExtractor.paletteOffMain(from: artwork) ?? .iceMountain
+    /// data yields nothing usable.
+    static func liquidColors(fromArtworkData data: Data) async -> [RGBColorToken] {
+        let palette = await Self.palette(fromArtworkData: data) ?? .iceMountain
         return [palette.vibrant, palette.dominant, palette.muted]
     }
 }
@@ -275,6 +308,10 @@ private struct LiquidDiscView: View {
 
     let artwork: NSImage?
     var isPlaying: Bool
+    /// Per-track seed for the simulated beat swell (`GroovePulse`).
+    var beatSeed: UInt64 = 0
+    /// Content-based identity of (track, artwork) — drives re-extraction.
+    var paletteKey: String = ""
 
     @EnvironmentObject private var settings: AppSettings
 
@@ -286,25 +323,32 @@ private struct LiquidDiscView: View {
     private let secondsPerOrbit: Double = 14.0
 
     var body: some View {
-        GeometryReader { geo in
+        // Resolved ONCE per body evaluation, outside the frame closure — the
+        // per-frame path below must not allocate or re-read observed state.
+        let tokens = colors
+        return GeometryReader { geo in
             let size = min(geo.size.width, geo.size.height)
             TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isPlaying)) { ctx in
                 let phase = ctx.date.timeIntervalSinceReferenceDate
                     .truncatingRemainder(dividingBy: secondsPerOrbit) / secondsPerOrbit * 2 * .pi
-                canvas(size: size, phase: phase)
+                // Same frame clock, same pulse as the vinyl grooves.
+                let pulse = GroovePulse.amplitude(seed: beatSeed, at: ctx.date, isPlaying: isPlaying)
+                canvas(size: size, phase: phase, pulse: pulse, tokens: tokens)
             }
             .frame(width: size, height: size)
             .frame(width: geo.size.width, height: geo.size.height)
         }
         .aspectRatio(1, contentMode: .fit)
-        // Re-extract when the artwork object changes; `task(id:)` cancels the
-        // stale extraction automatically on a fast track skip.
-        .task(id: artwork.map(ObjectIdentifier.init)) {
-            guard let artwork else {
+        // Re-extract when the CONTENT identity changes; `task(id:)` cancels a
+        // stale extraction automatically on a fast track skip. The artwork is
+        // snapshotted to Sendable `Data` HERE (on the main actor) so no
+        // NSImage crosses the actor boundary.
+        .task(id: paletteKey) {
+            guard let artwork, let data = artwork.tiffRepresentation else {
                 extracted = nil
                 return
             }
-            extracted = await AsyncArtworkPalette.liquidColors(from: artwork)
+            extracted = await AsyncArtworkPalette.liquidColors(fromArtworkData: data)
         }
         .allowsHitTesting(false)
     }
@@ -317,11 +361,11 @@ private struct LiquidDiscView: View {
         return [p.vibrant, p.dominant, p.muted]
     }
 
-    private func canvas(size: CGFloat, phase: Double) -> some View {
-        let tokens = colors
-        return Canvas { context, canvasSize in
+    private func canvas(size: CGFloat, phase: Double, pulse: Double, tokens: [RGBColorToken]) -> some View {
+        Canvas { context, canvasSize in
             let center = CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2)
-            let baseRadius = size * 0.34
+            // Beat swell: blobs breathe up to +6% radius on each simulated hit.
+            let baseRadius = size * 0.34 * (1.0 + CGFloat(pulse) * 0.06)
 
             // Soft dark backing so the blobs read on any wallpaper.
             let disc = Path(ellipseIn: CGRect(x: center.x - size * 0.46,

@@ -13,6 +13,9 @@ struct VinylDiskView: View {
     let artwork: NSImage?
     var isSpinning: Bool
     var showTonearm: Bool = true
+    /// Per-track seed for the simulated beat (`GroovePulse`). 0 ⇒ still valid,
+    /// just a fixed default tempo; pass a real seed for per-song character.
+    var beatSeed: UInt64 = 0
 
     /// Seconds per full revolution (~33⅓ rpm feel, a touch slowed for calm).
     private let secondsPerRev: Double = 4.0
@@ -31,7 +34,13 @@ struct VinylDiskView: View {
                     let elapsed = isSpinning ? ctx.date.timeIntervalSince(spinStart) : 0
                     let angle = (accumulatedAngle + elapsed / secondsPerRev * 360.0)
                         .truncatingRemainder(dividingBy: 360.0)
-                    rotatingCluster(size)
+                    // Groove shimmer rides the SAME frame clock — no extra
+                    // render loop, exactly 0 while paused. The pulse is applied
+                    // as a LAYER opacity below (a compositor transform), so the
+                    // groove Canvas raster itself stays frame-constant and
+                    // cache-friendly — no per-frame re-rasterization.
+                    let pulse = GroovePulse.amplitude(seed: beatSeed, at: ctx.date, isPlaying: isSpinning)
+                    rotatingCluster(size, grooveShimmer: 0.625 + 0.375 * pulse)
                         .rotationEffect(.degrees(angle))
                 }
                 .frame(width: size, height: size)
@@ -84,14 +93,24 @@ struct VinylDiskView: View {
 
     // MARK: - Rotating cluster (grooves + center label)
 
-    private func rotatingCluster(_ size: CGFloat) -> some View {
+    /// `grooveShimmer` is a whole-layer opacity multiplier in `0.625...1.0`:
+    /// the grooves are rasterized ONCE at 1.6× their resting brightness, and
+    /// the shimmer scales them back down — resting = 1.6 × 0.625 = the exact
+    /// pre-shimmer alphas, beat peak = 1.6×. Opacity is a compositor-level
+    /// transform, so the beat never re-rasterizes the 40 stroked ellipses.
+    private func rotatingCluster(_ size: CGFloat, grooveShimmer: Double = 0.625) -> some View {
         ZStack {
             grooves(size)
+                .opacity(grooveShimmer)
             centerLabel(size)
         }
         .frame(width: size, height: size)
     }
 
+    /// Frame-constant raster: captures only `size`-derived values, so SwiftUI
+    /// can cache it across TimelineView frames (line width intentionally NOT
+    /// beat-modulated — that would force per-frame redraws; see the critic
+    /// finding in creative_enhancements_features.json / CRE-005).
     private func grooves(_ size: CGFloat) -> some View {
         Canvas { ctx, sz in
             let center = CGPoint(x: sz.width / 2, y: sz.height / 2)
@@ -103,7 +122,8 @@ struct VinylDiskView: View {
                 let r = inner + (outer - inner) * t
                 let path = Path(ellipseIn: CGRect(x: center.x - r, y: center.y - r,
                                                   width: r * 2, height: r * 2))
-                let alpha = 0.05 + (1.0 - Double(t)) * 0.04
+                // 1.6× the resting alpha; the layer opacity scales it back.
+                let alpha = (0.05 + (1.0 - Double(t)) * 0.04) * 1.6
                 ctx.stroke(path, with: .color(.white.opacity(alpha)), lineWidth: 0.5)
             }
         }

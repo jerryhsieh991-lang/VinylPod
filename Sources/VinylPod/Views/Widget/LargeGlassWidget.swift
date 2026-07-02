@@ -101,7 +101,11 @@ struct LargeGlassWidget: View {
         // One reactive surface for every visual style; card chrome only for
         // the rectangular styles (round/soft ones draw their own edge).
         let style = settings.vinylStyle
-        MusicVisualizerContainerView(artwork: nowPlaying.track.artwork, cornerRadius: 5)
+        MusicVisualizerContainerView(artwork: nowPlaying.track.artwork,
+                                     cornerRadius: 5,
+                                     isPlaying: nowPlaying.isPlaying,
+                                     trackTitle: nowPlaying.track.title,
+                                     trackArtist: nowPlaying.track.artist)
             .frame(width: artworkSize, height: artworkSize)
             .overlay {
                 if !style.rendersOwnEdge {
