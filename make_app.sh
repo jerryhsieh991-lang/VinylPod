@@ -20,6 +20,13 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_PATH" "$APP/Contents/MacOS/$BIN_NAME"
 
+# SPM resource bundles (Bundle.module) must live in Contents/Resources,
+# otherwise the app only works while the baked-in .build path exists.
+BIN_DIR="$(dirname "$BIN_PATH")"
+for b in "$BIN_DIR"/*.bundle; do
+    [ -e "$b" ] && cp -R "$b" "$APP/Contents/Resources/"
+done
+
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

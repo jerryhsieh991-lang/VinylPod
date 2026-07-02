@@ -33,9 +33,9 @@ struct AlbumArtCloseButton: View {
     @VPState private var showPopover = false
     @VPState private var hovering = false
 
-    /// True when this tile should render the spinning vinyl disc instead of the
-    /// flat album-art card.
-    private var isVinylArt: Bool { showsArtworkLayer && settings.vinylStyle == .vinyl }
+    /// True when the current style draws its own round/soft edge (vinyl disc,
+    /// liquid disc) — the rectangular inner bevel is skipped for those.
+    private var isVinylArt: Bool { showsArtworkLayer && settings.vinylStyle.rendersOwnEdge }
 
     var body: some View {
         // ZStack with `.topLeading` alignment so BOTH the X button and the
@@ -91,19 +91,10 @@ struct AlbumArtCloseButton: View {
         if !showsArtworkLayer {
             Color.clear
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        } else if settings.vinylStyle == .vinyl {
-            // Vinyl Style: spinning record with the cover on the center label.
-            VinylDiskView(artwork: artwork, isSpinning: nowPlaying.isPlaying)
-        } else if let artwork {
-            Image(nsImage: artwork)
-                .resizable()
-                .scaledToFill()
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         } else {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(VPTheme.scrimStrong)
-                .overlay(SmallWidgetDefaultArtwork())
+            // All visual styles (vinyl / image / cassette / liquid disc) render
+            // through the shared reactive container.
+            MusicVisualizerContainerView(artwork: artwork, cornerRadius: cornerRadius)
         }
     }
 

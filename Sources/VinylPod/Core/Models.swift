@@ -108,11 +108,58 @@ enum DesktopLayer: String, Codable, CaseIterable {
 }
 
 /// How the center label / artwork is rendered (from the settings "Vinyl Style").
-enum VinylStyle: String, Codable, CaseIterable {
-    case vinyl   // spinning record with art on the label
-    case image   // flat album-art card
+/// Raw values are persisted in UserDefaults — never rename existing cases.
+enum VinylStyle: String, Codable, CaseIterable, Identifiable {
+    case vinyl      // spinning record with art on the label
+    case image      // flat album-art card
+    case cassette   // retro tape deck with twin synced gear hubs
+    case liquidDisc // boundary-less ambient disc tinted by the album palette
 
-    var displayName: String { self == .vinyl ? "Vinyl" : "Image" }
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .vinyl:      return "Vinyl"
+        case .image:      return "Image"
+        case .cassette:   return "Cassette"
+        case .liquidDisc: return "Liquid Disc"
+        }
+    }
+
+    /// Styles that draw their own (round / soft) edge. Call sites skip the
+    /// rectangular card chrome — bevel strokes, corner clipping, card shadows —
+    /// for these, exactly as they previously did for `.vinyl` only.
+    var rendersOwnEdge: Bool {
+        switch self {
+        case .vinyl, .liquidDisc: return true
+        case .image, .cassette:   return false
+        }
+    }
+}
+
+/// User-facing intensity for the album-reactive liquid glass.
+enum GlassTintStrength: String, Codable, CaseIterable, Identifiable {
+    case subtle
+    case balanced
+    case vivid
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .subtle: return "Subtle"
+        case .balanced: return "Balanced"
+        case .vivid: return "Vivid"
+        }
+    }
+
+    var multiplier: Double {
+        switch self {
+        case .subtle: return 0.72
+        case .balanced: return 1.0
+        case .vivid: return 1.28
+        }
+    }
 }
 
 /// A transport command routed to an external player (browser tab via the

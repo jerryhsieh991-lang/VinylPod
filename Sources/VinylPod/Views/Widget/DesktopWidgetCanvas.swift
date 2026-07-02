@@ -188,7 +188,7 @@ struct DesktopWidgetCanvas: View {
             }
             .padding(.vertical, 7)
             .frame(width: 180)
-            .background(.ultraThinMaterial)
+            .background(desktopPopoverBackground)
         }
     }
 
@@ -199,6 +199,46 @@ struct DesktopWidgetCanvas: View {
                 .foregroundStyle(Color.white.opacity(0.74))
         }
         .buttonStyle(.plain)
+    }
+
+    private var desktopPopoverBackground: some View {
+        let palette = settings.albumPalette
+        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+
+        return ZStack {
+            VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow)
+                .clipShape(shape)
+            shape
+                .fill(Color.white.opacity(0.90))
+            shape
+                .fill(palette.vibrant.color.opacity(0.10))
+                .blendMode(.multiply)
+            LinearGradient(
+                colors: [
+                    Color.white.opacity(0.42),
+                    palette.muted.color.opacity(0.08),
+                    Color.black.opacity(0.035)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .clipShape(shape)
+            shape
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.66),
+                            palette.vibrant.color.opacity(0.18),
+                            Color.black.opacity(0.14)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 1
+                )
+        }
+        .clipShape(shape)
+        .shadow(color: Color.black.opacity(0.22), radius: 18, x: 0, y: 9)
     }
 
     private func displayRow(_ title: String) -> some View {
@@ -273,7 +313,7 @@ struct DesktopWidgetCanvas: View {
             .padding(.vertical, 8)
             .frame(width: 174, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
-            .background(.ultraThinMaterial)
+            .background(desktopPopoverBackground)
         }
     }
 
@@ -355,30 +395,11 @@ struct DesktopWidgetCanvas: View {
             .padding(.top, 15)
 
             if settings.showProgress {
-                desktopProgress
+                DesktopProgressStrip()
                     .frame(width: 410)
             }
         }
         .frame(width: 620, alignment: .leading)
-    }
-
-    private var desktopProgress: some View {
-        HStack(spacing: 6) {
-            Text(nowPlaying.track.isEmpty ? "00:00" : ProgressBarView.timeString(nowPlaying.position))
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-                .frame(width: 46, alignment: .leading)
-            Capsule()
-                .fill(Color.white.opacity(0.54))
-                .frame(width: 286, height: 3)
-            Text(nowPlaying.track.isEmpty ? "-00:00" : "-" + ProgressBarView.timeString(max(nowPlaying.duration - nowPlaying.position, 0)))
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-                .frame(width: 66, alignment: .trailing)
-        }
-        .font(.system(size: 10, weight: .bold))
-        .foregroundStyle(Color.white)
-        .monospacedDigit()
     }
 
     private func controlButton(_ symbol: String, size: CGFloat, action: @escaping () -> Void) -> some View {
@@ -584,6 +605,40 @@ struct DesktopWidgetCanvas: View {
                 recordRotation = recordRotation.truncatingRemainder(dividingBy: 360)
             }
         }
+    }
+}
+
+@MainActor
+private struct DesktopProgressStrip: View {
+    @EnvironmentObject private var nowPlaying: NowPlayingService
+
+    var body: some View {
+        // FIX (perf invariant): coarsen the `position` read to whole seconds like
+        // the Large/Medium strips. Reading raw `position` re-ran this leaf ~10×/sec
+        // during playback; gating to `Int` seconds caps re-renders at ~1×/sec.
+        let isEmpty = nowPlaying.track.isEmpty
+        let elapsed = isEmpty ? 0 : Int(max(0, nowPlaying.position))
+        let total = Int(max(0, nowPlaying.duration))
+        let remaining = max(total - elapsed, 0)
+
+        HStack(spacing: 6) {
+            Text(isEmpty ? "00:00" : ProgressBarView.timeString(TimeInterval(elapsed)))
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(width: 46, alignment: .leading)
+
+            Capsule()
+                .fill(Color.white.opacity(0.54))
+                .frame(width: 286, height: 3)
+
+            Text(isEmpty ? "-00:00" : "-" + ProgressBarView.timeString(TimeInterval(remaining)))
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(width: 66, alignment: .trailing)
+        }
+        .font(.system(size: 10, weight: .bold))
+        .foregroundStyle(Color.white)
+        .monospacedDigit()
     }
 }
 
