@@ -33,8 +33,9 @@ struct AdaptiveWidgetGlassBackground: View {
         let artworkLuminance = palette.dominant.relativeLuminance
         let isBrightArtwork = artworkLuminance > 0.46
         let isDarkArtwork = artworkLuminance < 0.16
-        let colorMembraneOpacity = min(accentStrength + 0.13 + chromaBoost, 0.48)
-        let dominantMembraneOpacity = min(accentStrength + 0.08 + chromaBoost * 0.65, 0.38)
+        let strength = settings.glassTintStrength.multiplier
+        let colorMembraneOpacity = min((accentStrength + 0.13 + chromaBoost) * strength, 0.58)
+        let dominantMembraneOpacity = min((accentStrength + 0.08 + chromaBoost * 0.65) * strength, 0.46)
         let legibilityScrimOpacity = isBrightArtwork ? 0.22 : (isDarkArtwork ? 0.12 : 0.17)
         let depthOpacity = isDarkArtwork ? 0.26 : 0.18
 
@@ -95,8 +96,8 @@ struct AdaptiveWidgetGlassBackground: View {
             // tints the glass rather than painting over it.
             RadialGradient(
                 colors: [
-                    vibrant.opacity(min(accentStrength * 1.70 + chromaBoost, 0.56)),
-                    dominant.opacity(min(accentStrength * 0.92 + chromaBoost * 0.55, 0.36)),
+                    vibrant.opacity(min((accentStrength * 1.70 + chromaBoost) * strength, 0.68)),
+                    dominant.opacity(min((accentStrength * 0.92 + chromaBoost * 0.55) * strength, 0.48)),
                     .clear
                 ],
                 center: UnitPoint(x: 0.18, y: 0.02),
@@ -187,6 +188,7 @@ struct AdaptiveWidgetGlassBackground: View {
                 .blendMode(.multiply)
         }
         .animation(VPTheme.liquid, value: settings.albumPalette)
+        .animation(VPTheme.liquid, value: settings.glassTintStrength)
     }
 }
 

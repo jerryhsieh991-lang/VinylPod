@@ -83,7 +83,12 @@ final class MetadataReader: MetadataReading {
     }
 
     /// Find the common artwork item and decode its data into an `NSImage`.
-    private func artworkImage(from items: [AVMetadataItem]) async throws -> NSImage? {
+    ///
+    /// `nonisolated`: an async nonisolated method runs on the concurrent
+    /// executor, so the data load and the full image decode happen off the
+    /// main actor — the same guarantee the previous `Task.detached` provided,
+    /// but without requiring `NSImage: Sendable` (unavailable before macOS 14).
+    private nonisolated func artworkImage(from items: [AVMetadataItem]) async throws -> NSImage? {
         guard let item = AVMetadataItem.metadataItems(
             from: items,
             filteredByIdentifier: .commonIdentifierArtwork

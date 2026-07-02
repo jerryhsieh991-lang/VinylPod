@@ -108,8 +108,19 @@ final class SettingsEffects {
             .store(in: &cancellables)
 
         // 5. `dynamicNotch` is owned by WindowManager because it creates an
-        // independent non-activating panel. `hideNotchInFullscreen` is still a
-        // future behavior hook.
+        // independent non-activating panel.
+        //
+        // AUDIT (hideNotchInFullscreen): intentionally NOT observed. The app has
+        // no fullscreen-detection path to hook into — there is no
+        // will/didEnterFullScreen observer anywhere in the codebase, and the
+        // dynamic-island panel's visibility is driven solely by the `dynamicNotch`
+        // toggle in WindowManager.syncDynamicIsland() (a file this module does not
+        // own). The only `.fullScreenAuxiliary` usages are NSWindow collection
+        // behaviors that let panels float OVER other apps' fullscreen Spaces; they
+        // are not a hook for "this app entered fullscreen". Implementing a real
+        // effect would require adding a fullscreen observer inside WindowManager.
+        // Until that exists this toggle is inert. RECOMMEND REMOVAL — see
+        // docs/settings-audit.md.
     }
 
     // MARK: - 1. Launch at Login
@@ -144,6 +155,11 @@ final class SettingsEffects {
 
     // MARK: - 3. Show Artwork in Dock
 
+    // AUDIT (showArtworkInDock): WORKING. Real effect implemented here — sets
+    // `NSApp.applicationIconImage` to the current album artwork when the toggle is
+    // on and the Dock icon is visible, clears it otherwise. Driven by `$track`
+    // (never `$position`, preserving the per-tick perf invariant) and by the Dock
+    // policy changes. No change recommended.
     private func applyDockArtwork() {
         guard NSApp != nil else { return }
         // Only paint artwork onto the Dock when both the toggle is on and the
@@ -155,15 +171,58 @@ final class SettingsEffects {
         }
     }
 
-    // MARK: - 4. Cover art as wallpaper (reversible)
+    // MARK: - 4. Cover art as wallpaper (reversible, confirmed)
 
+    /// Set once the user has explicitly confirmed the wallpaper takeover in the
+    /// current enable, so we don't re-prompt on every track change / re-apply.
+    private var wallpaperConfirmed = false
+
+    /// AUDIT (coverArtAsWallpaper): overwriting the user's desktop wallpaper via
+    /// `NSWorkspace.setDesktopImageURL` is an invasive, system-wide side effect —
+    /// it touches every screen and every Space, not just this app's window. The
+    /// safe-correct behavior is to (a) require an explicit one-time confirmation
+    /// before the FIRST takeover of an enable session, and (b) keep the restore
+    /// path fully automatic (undoing an unwanted change must never require a
+    /// prompt). If confirmation is declined we revert the toggle. This keeps the
+    /// feature but removes the "flip a checkbox and your desktop silently changes"
+    /// surprise. If product decides the feature isn't worth the intrusion, see
+    /// docs/settings-audit.md for the removal recipe.
     private func applyWallpaper() {
         if settings.coverArtAsWallpaper {
+            guard confirmWallpaperTakeoverIfNeeded() else {
+                // User declined: revert the toggle. Setting it to false re-enters
+                // this method on the next runloop tick and hits the restore branch
+                // (a no-op, since nothing was captured/applied yet).
+                if settings.coverArtAsWallpaper { settings.coverArtAsWallpaper = false }
+                return
+            }
             captureWallpapersIfNeeded()
             applyArtworkToWallpaper()
         } else {
+            wallpaperConfirmed = false
             restoreWallpapers()
         }
+    }
+
+    /// Show a modal confirmation the first time the wallpaper takeover is applied
+    /// in an enable session. Returns `true` if we may proceed (already confirmed,
+    /// or the user just approved), `false` if the user declined.
+    private func confirmWallpaperTakeoverIfNeeded() -> Bool {
+        if wallpaperConfirmed { return true }
+        let alert = NSAlert()
+        alert.messageText = "Use album art as your desktop wallpaper?"
+        alert.informativeText = """
+        VinylPod will replace your desktop wallpaper on every display with the \
+        current album's cover art, and keep changing it as tracks change. Your \
+        original wallpaper is saved and restored automatically when you turn this \
+        off.
+        """
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Use Album Art")
+        alert.addButton(withTitle: "Cancel")
+        let approved = alert.runModal() == .alertFirstButtonReturn
+        wallpaperConfirmed = approved
+        return approved
     }
 
     /// Capture each screen's current wallpaper exactly once per enable, so we can
@@ -179,6 +238,13 @@ final class SettingsEffects {
         }
     }
 
+    /// The temp PNG currently in use as the wallpaper. Each apply writes a NEW
+    /// file (NSWorkspace may ignore a rewrite of the same URL), so we keep the
+    /// previous one just long enough to swap, then delete it — otherwise a long
+    /// listening session with wallpaper enabled leaks one PNG per track into
+    /// the temporary directory.
+    private var currentWallpaperPNG: URL?
+
     /// Render the current artwork to a temp PNG and set it on every screen.
     /// No-op if there is no artwork to apply.
     private func applyArtworkToWallpaper() {
@@ -188,11 +254,24 @@ final class SettingsEffects {
         for screen in NSScreen.screens {
             try? workspace.setDesktopImageURL(url, for: screen, options: [:])
         }
+        // Every screen now points at the new file; the previous one is unused.
+        if let previous = currentWallpaperPNG, previous != url {
+            try? FileManager.default.removeItem(at: previous)
+        }
+        currentWallpaperPNG = url
     }
 
     /// Restore each screen's saved wallpaper, then clear the saved set so a future
     /// enable re-captures a fresh baseline.
     private func restoreWallpapers() {
+        // The takeover PNG is unused once the originals are back (or if nothing
+        // was ever applied); clean it up either way.
+        defer {
+            if let png = currentWallpaperPNG {
+                try? FileManager.default.removeItem(at: png)
+                currentWallpaperPNG = nil
+            }
+        }
         guard !savedWallpapers.isEmpty else { return }
         let workspace = NSWorkspace.shared
         for screen in NSScreen.screens {
