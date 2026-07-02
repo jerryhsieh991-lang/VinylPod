@@ -24,12 +24,19 @@ enum SnapshotRenderer {
             ? args[flagIndex + 1]
             : NSTemporaryDirectory() + "vinylpod-live.png"
 
+        // Optional third arg "island" targets the Dynamic Island panel
+        // (100–800 pt wide) instead of the main widget window (>800 pt).
+        let wantIsland = args.indices.contains(flagIndex + 2) && args[flagIndex + 2] == "island"
+
         // The main widget window is created after launch; poll until a
-        // real-sized window exists (the 326pt menu-bar extra doesn't count).
+        // real-sized window exists (the menu-bar extra doesn't count).
         var attempts = 0
         func tryDump() {
             attempts += 1
-            guard let window = NSApp.windows.first(where: { $0.frame.width > 800 }),
+            guard let window = NSApp.windows.first(where: {
+                      wantIsland ? ((100..<800).contains($0.frame.width) && $0.level.rawValue > NSWindow.Level.normal.rawValue)
+                                 : $0.frame.width > 800
+                  }),
                   let view = window.contentView,
                   let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else {
                 if attempts < 20 {
