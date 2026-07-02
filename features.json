@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "role": "Root feature index. Per-surface detail lives in the *_features.json files listed under `surfaces` (those stay the SSOT — do not duplicate their entries here). This file adds the cross-surface feature list with CURRENT verification status.",
+  "last_verified": "2026-07-02",
+  "verification_legend": {
+    "done": "implemented + verified this pass (build, runtime probe, or e2e)",
+    "partial": "implemented; some verification requires interactive TCC permissions",
+    "planned": "not yet implemented"
+  },
+  "surfaces": {
+    "small_widget": "small_widget_features.json",
+    "regular_widget": "regular_widget_features.json",
+    "large_widget": "large_widget_features.json",
+    "desktop_widget": "desktop_widget_features.json",
+    "settings": "settings_features.json",
+    "widget_common": "widget_features.json",
+    "ui_comparative": "ui_comparative_features.json",
+    "creative": "creative_enhancements_features.json"
+  },
+  "features": [
+    {
+      "id": "bridge.ws-server",
+      "title": "Loopback WebSocket bridge (ws://127.0.0.1:8787, NWProtocolWebSocket)",
+      "status": "done",
+      "evidence": "126-connection flood test passes; loopback-only bind"
+    },
+    {
+      "id": "bridge.flood-guard",
+      "title": "Flood resilience: raw-frame coalescing + adaptive 10Hz→2Hz flush + TCP receive backpressure",
+      "status": "done",
+      "evidence": "2026-07-02 stress: CPU avg ~20% peak ~25% (was perma-100%), RSS flat ~90MB, post-flood settles to 7% baseline, sender throttled 875→239 msg/s"
+    },
+    {
+      "id": "bridge.security",
+      "title": "Bridge hardening: frame-size cap, conn cap, SSRF guard on artwork URLs, data:-URI safe decode",
+      "status": "done",
+      "evidence": "code in BrowserBridge.swift (H1/C2 comments)"
+    },
+    {
+      "id": "capture.extension",
+      "title": "Chrome/Safari extension MediaSession capture (Spotify/YouTube/Apple Music)",
+      "status": "done",
+      "evidence": "BrowserExtension/ + SafariExtension/; lazy connect, idle retry stop (c8eb011)"
+    },
+    {
+      "id": "capture.native",
+      "title": "Native MediaRemote capture (settings.nativeCaptureEnabled)",
+      "status": "done",
+      "evidence": "NativeMediaRemoteCapture.swift; off by default"
+    },
+    {
+      "id": "artwork.pipeline",
+      "title": "Artwork high-res chokepoint: CDN URL upgrade + pixel-size normalize + per-URL cache",
+      "status": "done",
+      "evidence": "d998426/0612a9e + BrowserBridge.normalizedImage"
+    },
+    {
+      "id": "glass.adaptive-tint",
+      "title": "Liquid Glass dynamic tint from album palette (dominant/vibrant/shadow membrane + soft-light bloom)",
+      "status": "done",
+      "evidence": "AdaptiveWidgetGlassBackground.swift; luminance clamp in ArtworkColorExtractor (brightness window 0.04–0.98, targets 0.56/0.46)"
+    },
+    {
+      "id": "glass.strength-setting",
+      "title": "Glass tint strength picker (GlassTintStrength)",
+      "status": "done",
+      "evidence": "settings menu + AppearanceSettingsSection"
+    },
+    {
+      "id": "vinyl.disc",
+      "title": "Vinyl disc: 30fps TimelineView rotation, pause-safe angle, tonearm drop/raise ±14°",
+      "status": "done",
+      "evidence": "VinylDiskView.swift; paused TimelineView when idle"
+    },
+    {
+      "id": "vinyl.groove-pulse",
+      "title": "Groove shimmer pulses to per-track beat seed while playing (creative)",
+      "status": "done",
+      "evidence": "GroovePulse.amplitude wired into VinylDiskView + MusicVisualizerContainerView"
+    },
+    {
+      "id": "visualizer.container",
+      "title": "3-mode visualizer container (vinyl / image / cassette / liquidDisc), exhaustive switch",
+      "status": "done",
+      "evidence": "218077a; MusicVisualizerContainerView.swift"
+    },
+    {
+      "id": "lyrics.lrc",
+      "title": "Swift-6-safe LRC lyrics engine pipeline",
+      "status": "done",
+      "evidence": "218077a"
+    },
+    {
+      "id": "widget.sizes",
+      "title": "Widget size modes: Small / Regular / Large / Desktop Widget",
+      "status": "done",
+      "evidence": "WindowMode + per-size *GlassWidget views; e2e size-switching harness exists (needs Accessibility TCC to run headless)"
+    },
+    {
+      "id": "widget.dynamic-island",
+      "title": "Dynamic-notch (menu-bar island) widget",
+      "status": "done",
+      "evidence": "DynamicIslandWidget.swift; live window observed at layer 25"
+    },
+    {
+      "id": "window.always-on-top",
+      "title": "Always-on-top (keepWindowInFront)",
+      "status": "done",
+      "evidence": "RUNTIME-VERIFIED 2026-07-02: CGWindowList shows widget at layer 3 (.floating)"
+    },
+    {
+      "id": "window.desktop-pin",
+      "title": "Desktop layer back-pin: below icons, .stationary, ignoresCycle",
+      "status": "done",
+      "evidence": "WindowManager.swift:155–167"
+    },
+    {
+      "id": "window.no-drag-widget",
+      "title": "Non-draggable desktop-widget mode (isMovable=false)",
+      "status": "done",
+      "evidence": "WindowManager.swift:222–223"
+    },
+    {
+      "id": "menu.tab-slide",
+      "title": "Tab-slide settings menu: radio sections push sub-pages (trailing-edge slide, back header pop)",
+      "status": "done",
+      "evidence": "NEW 2026-07-02: SettingsMenu.swift MenuPage root/size/vinylStyle/glass; compiles clean"
+    },
+    {
+      "id": "menu.live-source-row",
+      "title": "Live 'Now Playing From' source indicator (3 honest states)",
+      "status": "done",
+      "evidence": "NowPlayingSourceRow leaf view; per-tick invariant respected"
+    },
+    {
+      "id": "shortcuts.recorder",
+      "title": "Keyboard shortcut recorder UI (10 actions, 3 groups)",
+      "status": "done",
+      "evidence": "ShortcutRecorderView + KeyboardShortcutsWindow"
+    },
+    {
+      "id": "shortcuts.persistence",
+      "title": "Shortcut persistence: UserDefaults 'keyboardShortcuts' flat-array JSON, reload at launch",
+      "status": "partial",
+      "evidence": "load/decode path verified in isolation 2026-07-02; save path code-verified; hardware-key firing needs one 10s manual check (synthetic events blocked by TCC)"
+    },
+    {
+      "id": "shortcuts.carbon",
+      "title": "Carbon RegisterEventHotKey global hotkeys (no Accessibility permission needed, keys consumed)",
+      "status": "partial",
+      "evidence": "HotKeyManager.swift; same manual check as shortcuts.persistence"
+    },
+    {
+      "id": "settings.window",
+      "title": "Full tabbed Settings window (⌘,): General/Appearance/Capture/Last.fm/About",
+      "status": "done",
+      "evidence": "SettingsWindow.swift + sections; wired 2f8463e"
+    },
+    {
+      "id": "settings.launch-login",
+      "title": "Launch at login",
+      "status": "done",
+      "evidence": "2f8463e; defaults key launchAtLogin"
+    },
+    {
+      "id": "settings.dock-artwork",
+      "title": "Dock icon artwork / hide dock icon",
+      "status": "done",
+      "evidence": "2f8463e; showArtworkInDock, hideDockIcon"
+    },
+    {
+      "id": "settings.wallpaper",
+      "title": "Cover art as wallpaper",
+      "status": "done",
+      "evidence": "2f8463e; coverArtAsWallpaper (PNG leak fixed per progress.txt)"
+    },
+    {
+      "id": "scrobble.lastfm",
+      "title": "Last.fm scrobbling client",
+      "status": "done",
+      "evidence": "Scrobbling/LastFm*.swift + settings section"
+    },
+    {
+      "id": "transport.controls",
+      "title": "Bidirectional transport: app → extension control (play/pause/next/prev/seek)",
+      "status": "done",
+      "evidence": "BrowserBridge.send(ExternalControlAction) + extension handler"
+    },
+    {
+      "id": "audio.local-files",
+      "title": "Local file playback (AVFoundation) + ID3 metadata + artwork color",
+      "status": "done",
+      "evidence": "Audio/ module per CONTRACTS.md"
+    },
+    {
+      "id": "qa.e2e-suite",
+      "title": "E2E suite: bridge flood stress + size-switching Accessibility harness",
+      "status": "partial",
+      "evidence": "bridge flood stress green 2026-07-02; size-switching harness launches+detects (JXA -1700 coercion crashes fixed) but cycling is blocked: widget NSPanels expose no AX children, so the Settings trigger is unreachable headlessly. Window sizes verified instead via CGWindowList smoke (all 5 modes exact). Follow-up: add AX exposure to panels."
+    }
+  ]
+}

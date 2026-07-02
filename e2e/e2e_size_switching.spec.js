@@ -150,6 +150,10 @@ function safeValue(element, key) {
   }
 }
 
+function safeString(value) {
+  try { return String(value) } catch (_) { return "" }   // JXA coercion can throw -1700
+}
+
 function safeArray(element, key) {
   const value = safeValue(element, key)
   if (!value) return null
@@ -236,7 +240,9 @@ function detectModeFromSize(size) {
 }
 
 function clickAt(x, y) {
-  const script = `tell application "System Events" to click at {${Math.round(x)}, ${Math.round(y)}}`
+  // `click at` lives in System Events' Processes suite — it MUST run inside a
+  // `tell process` block; the bare form throws -1700 (Can't convert types).
+  const script = `tell application "System Events" to tell process "${PROCESS_NAME}" to click at {${Math.round(x)}, ${Math.round(y)}}`
   shell("/usr/bin/osascript -e " + quote(script))
 }
 
@@ -262,14 +268,15 @@ function findNamedButton(root, names) {
   const seen = {}
   while (queue.length) {
     const element = queue.shift()
-    const id = String(element)
+    let id
+    try { id = String(element) } catch (_) { id = "el-" + Math.random() }  // String() itself can throw -1700
     if (seen[id]) continue
     seen[id] = true
 
-    const role = String(safeValue(element, "role") || "").toLowerCase()
-    const name = String(safeValue(element, "name") || "").toLowerCase()
-    const description = String(safeValue(element, "description") || "").toLowerCase()
-    const title = String(safeValue(element, "title") || "").toLowerCase()
+    const role = safeString(safeValue(element, "role") || "").toLowerCase()
+    const name = safeString(safeValue(element, "name") || "").toLowerCase()
+    const description = safeString(safeValue(element, "description") || "").toLowerCase()
+    const title = safeString(safeValue(element, "title") || "").toLowerCase()
 
     const text = [name, description, title].filter(Boolean)
     if (role.includes("button") && text.some(value => wanted.includes(value))) {
@@ -289,13 +296,27 @@ function clickNamedButton(names) {
   const proc = vinylProcess()
   const button = findNamedButton(proc, names)
   if (!button) return false
-  button.click()
-  return true
+  try {
+    button.click()
+    return true
+  } catch (_) {
+    // JXA .click() throws -1700 on some AX elements; click its center instead.
+    const pos = safeArray(button, "position")
+    const size = safeArray(button, "size")
+    if (pos && size) {
+      clickAt(pos[0] + size[0] / 2, pos[1] + size[1] / 2)
+      return true
+    }
+    return false
+  }
 }
 
 function clickSettingsForMode(modeRaw) {
+  log("clickSettingsForMode: bringForward")
   bringForward()
+  log("clickSettingsForMode: lookup Settings button")
   if (clickNamedButton(["Settings"])) {
+    log("clickSettingsForMode: clicked AX Settings button")
     sleep(DROPDOWN_WAIT_MS / 4)
     return
   }
@@ -328,13 +349,14 @@ function textExists(text) {
   const seen = {}
   while (queue.length) {
     const element = queue.shift()
-    const id = String(element)
+    let id
+    try { id = String(element) } catch (_) { id = "el-" + Math.random() }  // String() itself can throw -1700
     if (seen[id]) continue
     seen[id] = true
 
-    const name = String(safeValue(element, "name") || "").toLowerCase()
-    const description = String(safeValue(element, "description") || "").toLowerCase()
-    const value = String(safeValue(element, "value") || "").toLowerCase()
+    const name = safeString(safeValue(element, "name") || "").toLowerCase()
+    const description = safeString(safeValue(element, "description") || "").toLowerCase()
+    const value = safeString(safeValue(element, "value") || "").toLowerCase()
     if ([name, description, value].some(candidate => candidate.includes(wanted))) return true
 
     ;["buttons", "radioButtons", "checkboxes", "menuItems", "staticTexts", "groups", "scrollAreas", "popOvers", "windows", "uiElements"].forEach(kind => {
@@ -346,17 +368,34 @@ function textExists(text) {
   return false
 }
 
+// The menu is paged (tab-slide): size rows live on a sub-page behind the
+// "Music Player Size" chevron row on the root page. Push it first.
+function openSizeSubmenu() {
+  if (clickNamedButton(["Music Player Size"])) {
+    sleep(450)   // trailing-edge slide animation
+    return true
+  }
+  // Fallback: approximate the chevron row position on the root page.
+  const snap = windowSnapshot()
+  const menuX = snap.position[0] + snap.size[0] - 128
+  const menuTop = snap.position[1] + 35
+  clickAt(menuX, menuTop + 128)
+  sleep(450)
+  return true
+}
+
 function clickSizeOption(mode) {
+  openSizeSubmenu()
   const names = [mode.label].concat(mode.aliases || [])
   if (clickNamedButton(names)) return true
 
-  // Fallback: approximate row position inside the settings popover. This is
-  // intentionally a fallback; Accessibility text lookup above is preferred.
+  // Fallback: approximate row position inside the size SUB-PAGE (back header
+  // on top, then one row per mode). Accessibility lookup above is preferred.
   const snap = windowSnapshot()
   const idx = MODES.findIndex(candidate => candidate.raw === mode.raw)
   const menuX = mode.raw === "desktopWidget" ? snap.position[0] + 118 : snap.position[0] + snap.size[0] - 128
   const menuTop = mode.raw === "desktopWidget" ? snap.position[1] + 38 : snap.position[1] + 35
-  const y = menuTop + 156 + idx * 28
+  const y = menuTop + 44 + idx * 28
   clickAt(menuX, y)
   return true
 }

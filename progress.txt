@@ -1,0 +1,54 @@
+# progress.txt — restart point (keep newest entry on top)
+
+## 2026-07-02 — Creative layer, slice 1 (GroovePulse)
+DECISION (user-aligned): audio reactivity = beat SIMULATION. No system audio
+tap (MediaSession/DOM cannot expose amplitude; CoreAudio tap needs macOS 14.4+
++ permissions). See creative_enhancements_features.json → decision_log.
+
+DONE:
+- agents.md (swarm lanes + hard invariants), creative_enhancements_features.json.
+- CRE-001 GroovePulse.swift: pure nonisolated (seed,date)→amplitude; FNV-1a
+  track seed; 72–132 BPM; downbeat accent + slow swell; 0 when paused.
+- CRE-002 VinylDiskView: grooves shimmer (alpha ×≤1.6, width ≤0.8) on the
+  existing 30fps TimelineView. No new clocks. Pause-angle logic untouched.
+- CRE-003 LiquidDiscView: blob radius +≤6% on the same pulse/seed → vinyl and
+  liquid disc agree on tempo per song (seed from title+artist via container).
+- Gate: swift build 0 warnings. Critic round 1: 0 BLOCK / 4 FLAG / 5 NIT.
+- Critic round 2 (all FLAGs fixed, rebuilt 0 warnings): groove Canvas back to
+  frame-constant raster (beat = layer opacity, 0.625–1.0 over a 1.6x-bright
+  raster); container decoupled from NowPlayingService (plain-value props, no
+  per-tick body re-eval); NSImage no longer crosses actors (Data snapshot on
+  main, task-local decode); palette task(id:) is content-based
+  (title+artist+pixel dims). NIT5/NIT9 fixed; NIT6/7/8 accepted as designed.
+
+NEXT:
+- CRE-004 ambient color temperature (backlog; lazy recompute, ≤6% shift).
+- Consider cassette hub micro-wobble on the same pulse (cheap, optional).
+- All work UNCOMMITTED on top of user's dirty tree — do not commit without ask.
+
+CONTEXT FOR RESTART:
+- Visualizer container: Sources/VinylPod/Views/Widget/MusicVisualizerContainerView.swift
+  (4 styles: vinyl/image/cassette/liquidDisc; exhaustive switch).
+- Per-tick invariant + toolchain rules: agents.md. Build: swift build (CLT, macOS 13 floor).
+
+## 2026-07-01 — Baseline
+Repo migrated to ~/Projects/VinylPodMac (off iCloud). 0-warning build achieved
+(DelegateBridge file-scope fix, wallpaper PNG leak fix, default-arg isolation
+fix, MetadataReader nonisolated decode). Bridge flood → 100% CPU loop fixed
+(630f629). E2E: e2e/bridge_stress_test.js, e2e/e2e_size_switching.spec.js.
+
+## 2026-07-02 — Verification + flood optimization + tab-slide menu
+Stress: CPU avg ~20%/peak ~25% under 8-conn flood (was 38.8/45.4 at session
+start; original bug was permanent 100%). Fix: raw-frame coalescing pre-decode,
+adaptive 10Hz→2Hz flush under flood, TCP receive backpressure (100ms re-arm).
+Post-flood CPU settles to 7% (= 30fps vinyl animation baseline).
+Runtime-verified: always-on-top (CGWindowList layer 3), shortcut persistence
+format = flat-array JSON ["action",{combo}] (decode verified in isolation;
+hardware-key firing needs 10s manual check — synthetic events need TCC).
+NEW: tab-slide settings menu (MenuPage push/pop, trailing-edge slide).
+NEW: root features.json aggregating the 8 per-surface JSONs (198 leaf entries).
+E2E size-switching harness: JXA -1700 crashes fixed (safeString guards,
+process-scoped click-at, .click() coordinate fallback, paged-menu step).
+Remaining blocker is APP-side: widget NSPanels expose no AX children →
+Settings trigger unreachable headlessly. Sizes verified via CGWindowList
+smoke instead (5/5 modes, exact defaultSize match).

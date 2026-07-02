@@ -1,0 +1,54 @@
+{
+  "surface": "Creative enhancement layer (Phase 4)",
+  "decision_log": {
+    "audio_reactivity_source": "beat-simulation (user-aligned 2026-07-02): no real audio tap; pseudo-beat synthesized from playback state + per-track seed. Zero permissions, works for every source, identical across Spotify/YouTube/local."
+  },
+  "features": [
+    {
+      "id": "CRE-001",
+      "title": "GroovePulse engine — deterministic pseudo-beat as a pure function of (trackSeed, date)",
+      "depends_on": [],
+      "acceptance": "Pure nonisolated function; no timers, no Combine, no $position reads; per-track BPM in 72-132 range derived from a stable track hash; amplitude is smooth (no frame pops) and exactly 0 when not playing.",
+      "status": "done"
+    },
+    {
+      "id": "CRE-002",
+      "title": "Vinyl groove shimmer — record grooves breathe with the pseudo-beat",
+      "depends_on": ["CRE-001"],
+      "acceptance": "VinylDiskView grooves modulate opacity/width inside the EXISTING 30fps TimelineView; paused ⇒ static; no extra render clock; CPU delta ≈ 0 vs baseline.",
+      "status": "done"
+    },
+    {
+      "id": "CRE-003",
+      "title": "Liquid disc beat swell — blob radii swell on the same pulse",
+      "depends_on": ["CRE-001"],
+      "acceptance": "LiquidDiscView blob radius modulated by the same GroovePulse value so vinyl and liquidDisc agree on the beat; idle ⇒ perfectly still.",
+      "status": "done"
+    },
+    {
+      "id": "CRE-004",
+      "title": "Ambient color temperature — glass warms at night, cools by day",
+      "depends_on": [],
+      "acceptance": "Palette post-process shifts white-point by local hour (piecewise curve, no location permission); ≤ 6% channel shift so album identity stays dominant; recomputed lazily (on palette change / hour tick), never per frame.",
+      "status": "backlog"
+    },
+    {
+      "id": "CRE-005",
+      "title": "Critic + QA gate for CRE-001..003",
+      "depends_on": ["CRE-002", "CRE-003"],
+      "acceptance": "swift build 0 warnings; adversarial review confirms per-tick invariant, isolation rules, pause behavior; e2e size-switch spec unaffected.",
+      "status": "done",
+      "critic_round_1": {
+        "verdict": "0 BLOCK, 4 FLAG, 5 NIT — all FLAGs fixed in round 2",
+        "fixes": [
+          "FLAG1: groove Canvas is frame-constant again (rasterized once at 1.6x brightness; beat applied as layer opacity 0.625-1.0 — compositor transform, no re-raster)",
+          "FLAG2: container no longer observes NowPlayingService; isPlaying/trackTitle/trackArtist passed as plain values from parent widgets (no per-position-tick body re-eval)",
+          "FLAG3: NSImage never crosses the actor boundary; caller snapshots tiffRepresentation Data on @MainActor, task-local NSImage decoded on the concurrent executor",
+          "FLAG4: task(id:) key is content-based (title+artist+pixel dims) — survives pointer reuse, re-extracts on hi-res artwork upgrade",
+          "NIT5+NIT9 also fixed (doc drift; tokens hoisted out of the frame closure)"
+        ],
+        "accepted_nits": "NIT6 (beat grid is wall-clock anchored — inherent to simulation), NIT7 (pre-2001 clock, unreachable), NIT8 (30fps sampling aliasing on beat edge — cosmetic)"
+      }
+    }
+  ]
+}
