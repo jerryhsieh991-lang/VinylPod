@@ -128,26 +128,34 @@ final class LocalAudioPlayer: NSObject, AudioPlaying {
         onFinish?()
     }
 
-    // MARK: - Delegate bridge
+}
 
-    /// `AVAudioPlayerDelegate` methods are delivered on a non-isolated context,
-    /// so the delegate object itself must NOT be `@MainActor`. This tiny,
-    /// non-isolated `NSObject` receives the callback and immediately hops onto
-    /// the main actor to invoke the owner's handler.
-    private final class DelegateBridge: NSObject, AVAudioPlayerDelegate {
-        /// `@MainActor`-isolated handler: the bridge hops onto the main actor
-        /// before invoking it, so the owner can touch its main-actor state.
-        private let onFinish: @MainActor () -> Void
+// MARK: - Delegate bridge
 
-        init(onFinish: @escaping @MainActor () -> Void) {
-            self.onFinish = onFinish
-        }
+/// `AVAudioPlayerDelegate` methods are delivered on a non-isolated context,
+/// so the delegate object itself must NOT be `@MainActor`. This tiny,
+/// non-isolated `NSObject` receives the callback and immediately hops onto
+/// the main actor to invoke the owner's handler.
+///
+/// Deliberately NOT nested inside `LocalAudioPlayer`: nested types inherit
+/// the enclosing type's `@MainActor` isolation, which would make `onFinish`
+/// main-actor-isolated and illegal to read from the nonisolated delegate
+/// callback below.
+private final class DelegateBridge: NSObject, AVAudioPlayerDelegate {
+    /// `@MainActor @Sendable` handler: the bridge hops onto the main actor
+    /// before invoking it, so the owner can touch its main-actor state.
+    private let onFinish: @MainActor @Sendable () -> Void
 
-        nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-            let handler = onFinish
-            Task { @MainActor in
-                handler()
-            }
+    init(onFinish: @escaping @MainActor @Sendable () -> Void) {
+        self.onFinish = onFinish
+    }
+
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        // Non-isolated context (AVFoundation's callback thread). `onFinish` is
+        // Sendable, so it can legally cross into the main-actor task.
+        let handler = onFinish
+        Task { @MainActor in
+            handler()
         }
     }
 }
