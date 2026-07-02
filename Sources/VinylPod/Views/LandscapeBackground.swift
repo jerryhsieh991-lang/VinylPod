@@ -24,18 +24,33 @@ struct LandscapeBackground: View {
         let shadow = palette.shadow.color
 
         ZStack {
+            // Both image branches are wrapped in Color.clear.overlay so the
+            // image's NATIVE size never becomes the view's ideal size. A bare
+            // resizable+scaledToFill Image reports its pixel size as ideal;
+            // on macOS 26 the hosting view sizes its internal platform view
+            // to that ideal (a 1920×1920 square for the bundled art), center-
+            // offsets it, and every padding-anchored sibling in the window
+            // lands in clipped overflow — the "clock and controls vanished"
+            // bug. Color.clear has a tiny flexible ideal; overlay content
+            // doesn't participate in sizing.
             if let url = settings.customBackgroundURL,
                let image = CustomBackgroundCache.image(for: url) {
                 // User-supplied image: fill the frame, crop the overflow.
-                Image(nsImage: image)
-                    .resizable()
-                    .scaledToFill()
+                Color.clear
+                    .overlay(
+                        Image(nsImage: image)
+                            .resizable()
+                            .scaledToFill()
+                    )
                     .clipped()
             } else if let image = DefaultArtworkAsset.image {
                 // Built-in default: the uploaded ice mountain asset.
-                Image(nsImage: image)
-                    .resizable()
-                    .scaledToFill()
+                Color.clear
+                    .overlay(
+                        Image(nsImage: image)
+                            .resizable()
+                            .scaledToFill()
+                    )
                     .clipped()
             } else {
                 // Final fallback: procedural ice mountain.
