@@ -13,7 +13,7 @@ This is a subsequent milestone on a mature (~9,300 LOC + MV3 extension), already
 
 **Critical path:** Phase 0 → Phase 2 → Phase 3 → Phase 4 → Phase 6, with Phase 1 and Phase 5 hanging off Phase 0 in parallel (Phase 5 gated on the Phase 1 perf guards).
 
-- [ ] **Phase 0: Land WIP & Reconcile** - Commit the ~19-file WIP re-verified against the perf invariants, designate docs canonical, de-noise the repo, refresh the map
+- [x] **Phase 0: Land WIP & Reconcile** - Commit the ~19-file WIP re-verified against the perf invariants, designate docs canonical, de-noise the repo, refresh the map (completed 2026-07-03)
 - [ ] **Phase 1: Test Foundation** - Add an SPM test target locking bridge security, ingestion change-gating, and the render-loop perf invariants
 - [ ] **Phase 2: Sandbox/Loopback + Signing Spike** - Prove a signed+sandboxed shell binds the loopback server and clears App Store Connect upload before the Xcode migration
 - [ ] **Phase 3: MAS Scaffold + Private-Framework Removal** - Stand up VinylPodKit + a thin .xcodeproj, strip MediaRemote with a symbol-grep gate, scaffold the Safari appex
@@ -35,7 +35,7 @@ This is a subsequent milestone on a mature (~9,300 LOC + MV3 extension), already
   3. The repo root is de-noised — `.playwright-mcp/` is gitignored and its transient artifacts (plus stray `.DS_Store`) are removed
   4. The `.planning/codebase/` map is regenerated after the WIP lands and reflects committed state (not the pre-WIP `f0a4c1c`)
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans complete
 **Research**: skip (pure land/reconcile/housekeeping; no external unknowns)
 
 Plans:
@@ -43,7 +43,7 @@ Plans:
 - [x] 00-01-PLAN.md
 - [x] 00-02-PLAN.md
 - [x] 00-03-PLAN.md
-- [ ] 00-04-PLAN.md
+- [x] 00-04-PLAN.md
 
 **Wave 1**
 
@@ -55,7 +55,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 00-03: De-noise the repo — add `.playwright-mcp/` to `.gitignore`, remove transient artifacts and stray `.DS_Store` (FND-03)
+- [x] 00-03: De-noise the repo — add `.playwright-mcp/` to `.gitignore`, remove transient artifacts and stray `.DS_Store` (FND-03)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -203,7 +203,7 @@ Critical path executes Phase 0 → 2 → 3 → 4 → 6; Phase 1 and Phase 5 run 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. Land WIP & Reconcile | 3/4 | In Progress|  |
+| 0. Land WIP & Reconcile | 4/4 | Complete   | 2026-07-03 |
 | 1. Test Foundation | 0/4 | Not started | - |
 | 2. Sandbox/Loopback + Signing Spike | 0/2 | Not started | - |
 | 3. MAS Scaffold + Private-Framework Removal | 0/5 | Not started | - |
