@@ -9,3 +9,8 @@ dist/
 SafariExtension/build/
 *.xcodeproj/xcuserdata/
 SafariExtension/**/xcuserdata/
+# Transient debug artifacts + generated doc stitch (Phase 0)
+.playwright-mcp/
+VinylPod-Complete-Documentation.md
+# Orchestrator web-research cache (regenerable; 00-02 drift disposition)
+.planning/research/.cache/
