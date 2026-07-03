@@ -35,13 +35,13 @@ This is a subsequent milestone on a mature (~9,300 LOC + MV3 extension), already
   3. The repo root is de-noised — `.playwright-mcp/` is gitignored and its transient artifacts (plus stray `.DS_Store`) are removed
   4. The `.planning/codebase/` map is regenerated after the WIP lands and reflects committed state (not the pre-WIP `f0a4c1c`)
 
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 **Research**: skip (pure land/reconcile/housekeeping; no external unknowns)
 
 Plans:
 
 - [x] 00-01-PLAN.md
-- [ ] 00-02-PLAN.md
+- [x] 00-02-PLAN.md
 - [ ] 00-03-PLAN.md
 - [ ] 00-04-PLAN.md
 
@@ -203,7 +203,7 @@ Critical path executes Phase 0 → 2 → 3 → 4 → 6; Phase 1 and Phase 5 run 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. Land WIP & Reconcile | 1/4 | In Progress|  |
+| 0. Land WIP & Reconcile | 2/4 | In Progress|  |
 | 1. Test Foundation | 0/4 | Not started | - |
 | 2. Sandbox/Loopback + Signing Spike | 0/2 | Not started | - |
 | 3. MAS Scaffold + Private-Framework Removal | 0/5 | Not started | - |
