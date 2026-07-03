@@ -165,6 +165,26 @@ Without it, rapid UI interactions (e.g., DynamicIslandWidget size picker clicked
 quickly) can enqueue multiple mode transitions in the same run-loop tick, each
 hosting the full glass tree. The guard drops duplicate in-flight transitions.
 
+### Measured CPU Budget (Phase 0 UAT amendment, 2026-07-03)
+
+The rules above are structural — they prohibit *self-sustaining* re-render loops,
+not intentional animation work. The historical "~0.0% steady-playback CPU"
+figure was a proxy for loop absence that predates the deliberately-shipped
+visualizer animations (10 Hz `TimelineView` in `DesktopWidgetCanvas`, island
+equalizer, spinning vinyl disc). Measured on the landed Phase 0 tree
+(bridge-path UAT, 2026-07-03; corroborated by 00-01's local-playback profile):
+
+- **Idle (no track): ~0.0%** — hard gate; any sustained idle CPU is a Rule 1–6
+  violation and a regression.
+- **Steady playback, widget visible & animating: ≤ 25%** (measured mean ~17.9%,
+  max 24.3%) — the cost is the by-design animations; it must drop back to ~0.0%
+  when playback stops or nothing animates.
+
+Phase 1's perf-guard tests are the enforcement point for both budgets. If the
+animation cost should be reduced instead (lower fps, pause when unfocused or
+occluded, `EqualizerBars`/`VinylDiskView` active gating), treat that as a
+deliberate product change — the structural rules do not require it.
+
 ---
 
 ## 4. Hotkeys
