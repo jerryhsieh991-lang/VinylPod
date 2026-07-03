@@ -79,6 +79,23 @@ final class ArtworkColorExtractor: ArtworkColorExtracting {
         paletteOffMain(from: image)?.vibrant.color
     }
 
+    /// Async liquid-disc palette parser for callers that already recreated an
+    /// `NSImage` inside a detached/off-main task. The return value contains only
+    /// plain RGB numbers, so it is safe to pass between actors.
+    nonisolated static func liquidTokensOffMain(from image: NSImage) async -> [RGBColorToken] {
+        paletteOffMain(from: image)?.liquidDiscTokens ?? AlbumColorPalette.iceMountain.liquidDiscTokens
+    }
+
+    /// Preferred actor-boundary API: snapshot artwork to `Data` on the main
+    /// actor, then call this from any async context. The `NSImage` is decoded
+    /// inside this nonisolated function and never leaks across the boundary.
+    nonisolated static func liquidTokensOffMain(from imageData: Data?) async -> [RGBColorToken] {
+        guard let imageData, let image = NSImage(data: imageData) else {
+            return AlbumColorPalette.iceMountain.liquidDiscTokens
+        }
+        return await liquidTokensOffMain(from: image)
+    }
+
     private nonisolated static func areaAverage(
         from image: CIImage,
         context: CIContext,

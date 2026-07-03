@@ -134,6 +134,22 @@ struct RGBColorToken: Equatable, Sendable {
         return RGBColorToken(nsColor: adjusted)
     }
 
+    func lightened(_ amount: CGFloat) -> RGBColorToken {
+        var hue: CGFloat = 0
+        var saturation: CGFloat = 0
+        var brightness: CGFloat = 0
+        var alpha: CGFloat = 0
+        (nsColor.usingColorSpace(.deviceRGB) ?? nsColor)
+            .getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+        let adjusted = NSColor(
+            hue: hue,
+            saturation: max(saturation - amount * 0.12, 0.08),
+            brightness: min(brightness + amount, 0.98),
+            alpha: alpha
+        )
+        return RGBColorToken(nsColor: adjusted)
+    }
+
     init(red: Double, green: Double, blue: Double, alpha: Double = 1.0) {
         self.red = red
         self.green = green
@@ -163,4 +179,15 @@ struct AlbumColorPalette: Equatable, Sendable {
         muted: RGBColorToken(red: 0.68, green: 0.86, blue: 0.92),
         shadow: RGBColorToken(red: 0.08, green: 0.18, blue: 0.30)
     )
+
+    /// Disconnected, sendable color tokens for fluid/ambient visualizers.
+    var liquidDiscTokens: [RGBColorToken] {
+        [
+            vibrant.adjusted(saturation: 0.52, brightness: 0.56, maximumBrightness: 0.94),
+            dominant.adjusted(saturation: 0.30, brightness: 0.34, maximumBrightness: 0.86),
+            muted.lightened(0.10),
+            shadow.darkened(0.22),
+            vibrant.mixed(with: muted, amount: 0.42).lightened(0.08)
+        ]
+    }
 }

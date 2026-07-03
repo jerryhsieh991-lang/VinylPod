@@ -107,12 +107,45 @@ enum DesktopLayer: String, Codable, CaseIterable {
     var behaviorLabel: String { self == .front ? "Above all windows" : "Below all windows" }
 }
 
-/// How the center label / artwork is rendered (from the settings "Vinyl Style").
+/// Runtime-selectable artwork visualizer. The persisted key is still
+/// `vinylStyle` for migration compatibility with older builds.
 enum VinylStyle: String, Codable, CaseIterable {
-    case vinyl   // spinning record with art on the label
-    case image   // flat album-art card
+    case vinyl
+    case cassette
+    case liquidDisc
 
-    var displayName: String { self == .vinyl ? "Vinyl" : "Image" }
+    var displayName: String {
+        switch self {
+        case .vinyl: return "Vinyl"
+        case .cassette: return "Cassette"
+        case .liquidDisc: return "Liquid Disc"
+        }
+    }
+}
+
+/// User-facing intensity for the album-reactive liquid glass.
+enum GlassTintStrength: String, Codable, CaseIterable, Identifiable {
+    case subtle
+    case balanced
+    case vivid
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .subtle: return "Subtle"
+        case .balanced: return "Balanced"
+        case .vivid: return "Vivid"
+        }
+    }
+
+    var multiplier: Double {
+        switch self {
+        case .subtle: return 0.72
+        case .balanced: return 1.0
+        case .vivid: return 1.28
+        }
+    }
 }
 
 /// A transport command routed to an external player (browser tab via the

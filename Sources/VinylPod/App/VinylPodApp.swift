@@ -231,6 +231,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let chars = event.charactersIgnoringModifiers, chars.count == 1,
                   let digit = chars.first else { return event }
 
+            // ⌘, → open the tabbed Settings window (standard macOS shortcut).
+            if digit == "," {
+                SettingsWindowController.shared.show(settings: AppEnvironment.shared.settings)
+                return nil // Consume — handled.
+            }
+
             if let mode = WindowMode.allCases.first(where: { $0.shortcutKey == digit }) {
                 WindowCoordinator.shared.manager?.apply(mode: mode)
                 return nil // Consume the event — we handled it.
