@@ -41,7 +41,6 @@ struct SmallGlassWidget: View {
                 onQuit: onQuit,
                 triggerSize: 18,
                 glyphSize: 9,
-                menuOffsetY: 23,
                 triggerFill: Color.black.opacity(0.82),
                 triggerStroke: Color.clear,
                 triggerForeground: Color.white.opacity(0.88)
@@ -208,7 +207,6 @@ struct MediumGlassWidget: View {
                 onQuit: onQuit,
                 triggerSize: 18,
                 glyphSize: 9,
-                menuOffsetY: 23,
                 triggerFill: Color.black.opacity(0.82),
                 triggerStroke: Color.clear,
                 triggerForeground: Color.white.opacity(0.88)

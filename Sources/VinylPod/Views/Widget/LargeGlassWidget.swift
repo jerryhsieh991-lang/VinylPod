@@ -58,7 +58,7 @@ struct LargeGlassWidget: View {
             .padding(.top, 8)
             .padding(.leading, 8)
             .frame(width: widgetSize.width, height: widgetSize.height, alignment: .topLeading)
-            .opacity(hovering ? 1 : 0)
+            .opacity(hovering ? 1 : 0.42)
             .animation(VPTheme.fade, value: hovering)
             .zIndex(9)
 
@@ -67,14 +67,13 @@ struct LargeGlassWidget: View {
                 onQuit: onQuit,
                 triggerSize: 18,
                 glyphSize: 9,
-                menuOffsetY: 23,
                 triggerFill: Color.black.opacity(0.82),
                 triggerStroke: Color.clear,
                 triggerForeground: Color.white.opacity(0.88)
             )
             .padding(.top, 9)
             .padding(.trailing, 9)
-            .opacity(hovering ? 1 : 0)
+            .opacity(hovering ? 1 : 0.42)
             .animation(VPTheme.fade, value: hovering)
             .zIndex(10)
         }
@@ -99,28 +98,13 @@ struct LargeGlassWidget: View {
 
     @ViewBuilder
     private var artworkCard: some View {
-        if settings.vinylStyle == .vinyl {
-            // Vinyl Style: spinning record with the cover on the center label.
-            VinylDiskView(artwork: nowPlaying.track.artwork, isSpinning: nowPlaying.isPlaying)
-                .frame(width: artworkSize, height: artworkSize)
-        } else {
-            Group {
-                if let artwork = nowPlaying.track.artwork {
-                    Image(nsImage: artwork)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    SmallWidgetDefaultArtwork()
-                }
-            }
-            .frame(width: artworkSize, height: artworkSize)
-            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.10), lineWidth: 0.8)
-            )
-            .shadow(color: Color.black.opacity(0.10), radius: 10, x: 0, y: 5)
-        }
+        MusicVisualizerContainerView(
+            style: settings.vinylStyle,
+            artwork: nowPlaying.track.artwork,
+            isPlaying: nowPlaying.isPlaying,
+            palette: settings.albumPalette
+        )
+        .frame(width: artworkSize, height: artworkSize)
     }
 
     private var titleStack: some View {

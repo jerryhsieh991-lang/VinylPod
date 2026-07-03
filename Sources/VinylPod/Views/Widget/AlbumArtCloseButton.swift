@@ -24,8 +24,8 @@ struct AlbumArtCloseButton: View {
     var onSelectLayer: (DesktopLayer) -> Void
     var onQuit: () -> Void
 
-    // Drives the Vinyl/Image style + spinning (Vinyl Style setting). Read from
-    // the environment so call sites don't change.
+    // Drives the selected visualizer style. Read from the environment so call
+    // sites don't need to pass another visual setting around.
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var nowPlaying: NowPlayingService
 
@@ -33,9 +33,8 @@ struct AlbumArtCloseButton: View {
     @VPState private var showPopover = false
     @VPState private var hovering = false
 
-    /// True when this tile should render the spinning vinyl disc instead of the
-    /// flat album-art card.
-    private var isVinylArt: Bool { showsArtworkLayer && settings.vinylStyle == .vinyl }
+    /// True when the artwork layer is a visualizer rather than a flat card.
+    private var isVisualizerArt: Bool { showsArtworkLayer }
 
     var body: some View {
         // ZStack with `.topLeading` alignment so BOTH the X button and the
@@ -44,12 +43,12 @@ struct AlbumArtCloseButton: View {
         ZStack(alignment: .topLeading) {
 
             // ── Album art (or placeholder) — fills the frame as a rounded square,
-            // OR the spinning vinyl disc when the Vinyl style is selected.
+            // or delegates to the selected visualizer style.
             artworkLayer
                 // Inner 3D bevel: top-lit linear-gradient stroke (white→black).
-                // Skipped for the vinyl disc (it has its own round edge).
+                // Skipped for rigid visualizers that have their own edges.
                 .overlay {
-                    if !isVinylArt {
+                    if !isVisualizerArt {
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                             .strokeBorder(
                                 LinearGradient(
@@ -91,19 +90,13 @@ struct AlbumArtCloseButton: View {
         if !showsArtworkLayer {
             Color.clear
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        } else if settings.vinylStyle == .vinyl {
-            // Vinyl Style: spinning record with the cover on the center label.
-            VinylDiskView(artwork: artwork, isSpinning: nowPlaying.isPlaying)
-        } else if let artwork {
-            Image(nsImage: artwork)
-                .resizable()
-                .scaledToFill()
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         } else {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(VPTheme.scrimStrong)
-                .overlay(SmallWidgetDefaultArtwork())
+            MusicVisualizerContainerView(
+                style: settings.vinylStyle,
+                artwork: artwork,
+                isPlaying: nowPlaying.isPlaying,
+                palette: settings.albumPalette
+            )
         }
     }
 
