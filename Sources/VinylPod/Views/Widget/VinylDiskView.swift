@@ -1,8 +1,8 @@
 import SwiftUI
 import AppKit
 
-/// A spinning vinyl record with the album art on the center label — shown when
-/// the user picks the **Vinyl** style in settings (vs the flat **Image** card).
+/// A spinning vinyl record with the album art on the center label — retained as
+/// the legacy visualizer mode while the rebrand adds differentiated renderers.
 ///
 /// It fills whatever frame it's given (drawing the largest centered disc), spins
 /// while `isSpinning` is true, and preserves its angle across pause/resume so it
