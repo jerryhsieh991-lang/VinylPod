@@ -254,3 +254,145 @@ already-working features (adaptive-accent/custom-background editing,
 native desktop-app capture, and Last.fm scrobbling) with no new logic
 required — pure re-wiring of code that already compiles and already works,
 it's simply never rendered.
+
+---
+
+## Appendix A — Historical build-spec digests (consolidated from root *_features.json, 2026-07-03)
+
+The seven root-level `*_features.json` files were June-28 screenshot-rebuild
+task specs (schema_version 1/2, per-node "done" flags) that predate this
+census. Their durable facts are digested below; **the original JSON files
+were removed from the repo root in Phase 0 (2026-07-03) and remain fully
+retrievable from git history** (they lived at the repo root until the
+`docs(00-02)` consolidation commit). `BrowserExtension/extension_backend_features.json`
+is a separate, still-live file and was not part of this consolidation.
+
+### widget_features.json
+
+Small/medium widget three-dot dropdown rebuild (schema_version 2,
+target native-swiftui). All 6 nodes done. Durable facts:
+
+- **Primary accent:** `#C592AB` (dusty rose glass over warm desktop); SF Pro
+  rounded-feeling native sans.
+- **Small mode default:** **162 x 162** compact glass widget, dusty rose
+  gradient, bottom playback strip; default size on launch = Small.
+- **Medium mode:** 344 x 132 horizontal compact widget — stronger white text,
+  visible controls, in-art X, top-right ellipsis.
+- **Dropdown:** anchored top-right under an 18 pt black ellipsis trigger;
+  native SwiftUI popover (avoids window clipping, keeps rows clickable);
+  Small/Medium/Large/Desktop rows call `onSelectSize(mode)`.
+- **Contrast rule:** three-dot and X popovers use dark ink over bright
+  frosted material.
+
+### small_widget_features.json
+
+Small widget rebuild from four 2026-06-28 reference screenshots
+(schema_version 1). All 4 nodes done. Durable facts:
+
+- **Target size:** **162 x 162**.
+- **Geometry:** rounded glass square, dusty pink tint, 18 pt continuous
+  corners; **98 x 98 album artwork** near top-left with the close X *inside*
+  the art bounds at its top-left; three-dot settings trigger pinned top-right;
+  bottom dark translucent strip with stopped/playing text + prev/play/next.
+- **States:** stopped shows "Music is stopped." + "Please play music on
+  Spotify..." copy; playing shows title, artist, optional progress, transport.
+
+### regular_widget_features.json
+
+Regular size widget recreation from the 2026-06-28 reference screenshots
+(schema_version 1, target native-swiftui). All 5 nodes done. Durable facts:
+
+- **Primary accent:** `#C592AB` (mauve album glass); bold white SF Pro
+  title/subtitle.
+- **Default regular size:** **300 x 360** tall rounded artwork card, mauve
+  overlays, soft shadow.
+- **Geometry:** X button inside top-left at 7 pt inset (15 pt
+  `AlbumArtCloseButton`, always visible); settings ellipsis inside top-right
+  at 9 pt inset (shared 18 pt black popover trigger); playback controls
+  centered over artwork around y=151 (white, subtle shadow); caption in a
+  bottom 86 pt gradient panel; artwork fills the full card.
+
+### large_widget_features.json
+
+Large size widget recreation from the 2026-06-28 4:20 PM reference
+screenshots (schema_version 1, target native-swiftui). All 5 nodes done.
+Durable facts:
+
+- **Primary accent:** `#D18FB8` (large mauve glass card); heavy centered
+  white SF Pro hierarchy.
+- **Default large size:** **320 x 432** rounded vertical card.
+- **Geometry:** **260 x 260 artwork centered at 31 pt top offset**; X at card
+  top-left 8 pt inset (hover-revealed, no duplicate artwork draw); settings
+  ellipsis top-right 9 pt inset; controls centered below the subtitle;
+  bottom progress row with left/right time labels.
+
+### desktop_widget_features.json
+
+Desktop widget full-screen recreation — timer ecosystem, display picker,
+animated vinyl deck, playback controls (schema_version 1, target
+native-swiftui). All 9 nodes done. Durable facts:
+
+- **Primary accent:** `#BD6BAD` (full-screen mauve vinyl desktop); oversized
+  white monospaced timer + SF Pro controls.
+- **Surface:** full screen; mauve gradient canvas with radial blooms.
+- **Chrome:** top-left X, clock/timer toggle, display picker, settings dots at
+  20 pt/18 pt; timer upper-left (countdown/time modes, top-right timer dots,
+  editable countdown minutes — numerals hide while editing); vinyl deck
+  upper-right (slow spin when playing, layered dark/light groove rings,
+  larger center artwork, spring-animated tonearm drop/lift, tonearm color
+  toggles on click); playback block bottom-left (title, subtitle, controls,
+  progress); native frosted popovers with intrinsic row height.
+- **Window policy:** pinned to one screen/Space, **not draggable**; front/back
+  are the only desktop-layer options (Sticky_Window_Engine); does not join
+  all Spaces. Display picker listed Built-in Retina Display and SB220Q.
+- **Glass:** album-derived accent used as a subtle soft-light tint
+  (Dynamic_Color_Extraction_Glass).
+
+### settings_features.json
+
+Advanced widget settings: keyboard-shortcut recorder + global Carbon
+hotkeys, conditional progress bar, native always-on-top. All 7 nodes done.
+Durable facts:
+
+- **Locked decision — `hotkeyScope`: global (Carbon `RegisterEventHotKey`,
+  no Accessibility permission).** This is the origin of the §3.2 hotkey
+  architecture.
+- **Node → file mapping:** `Shortcut_Model_Store` → `Core/Shortcuts.swift`
+  (KeyCombo Codable, ShortcutAction enum of 10 actions, ShortcutStore as
+  UserDefaults JSON + @Published); `Carbon_HotKey_Engine` →
+  `Hotkeys/HotKeyManager.swift` (RegisterEventHotKey per bound combo,
+  InstallEventHandler dispatch → onAction, reload on store change);
+  `Shortcut_Recorder_UI` → `Views/Widget/ShortcutRecorderView.swift`
+  ("Record Shortcut" pill, local NSEvent monitor, ⌘⇧P-style display, clear
+  button); `Keyboard_Shortcuts_Window` →
+  `Views/Widget/KeyboardShortcutsWindow.swift` (NSWindow, all actions in 3
+  groups with recorder pills).
+- **Progress bar:** `settings.showProgress` gates the bar in ALL sizes
+  including Medium/Regular with clean reflow.
+- **Always-on-top:** "Keep Window in Front" →
+  `WindowManager.applyStacking(.front/.back)` (native `NSWindowLevel`),
+  persisted. Wiring: app creates ShortcutStore + HotKeyManager and maps
+  actions; SettingsMenu opens the window and wires keep-in-front.
+
+### ui_comparative_features.json
+
+Comparative polish pass against a right-side reference app: dynamic island
+first, then typography, progress placement, menu visibility, album-aware
+liquid glass. All 8 nodes done. Durable facts:
+
+- **Accent:** dynamic from album artwork via `ArtworkColorExtractor` (no
+  fixed hex); smoky adaptive liquid glass over the desktop wallpaper; SF
+  Pro / SF Pro Rounded-style native sans replacing prior typography.
+- **Dynamic Island:** independent compact/expanded panel anchored top-center
+  at the menu bar/notch line, with visible settings trigger and animated
+  equalizer bars.
+- **Layout polish:** large-widget progress/control cluster moved upward
+  (reduced title/control spacers); settings popover widened and max height
+  increased (fixes cut-off look); settings trigger defaults to a dark
+  high-contrast capsule with white-ink menu text.
+- **Idle art:** the uploaded ice-mountain image is packaged as a SwiftPM
+  resource and shown wherever no current track artwork exists, with a cool
+  blue fallback accent.
+- **Glass depth:** blur + darker inner depth + album/ice edge refraction +
+  soft white specular streak + stronger bottom shade on the shared widget
+  glass.
