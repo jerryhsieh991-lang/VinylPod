@@ -28,6 +28,14 @@
 
   const POLL_MS = 1000; // keep in sync with extension_backend_features.json config
 
+  // Hard caps on untrusted DOM-scraped strings. A malicious/broken page could
+  // put arbitrarily long text into a title node; clamp BEFORE it ever crosses
+  // the messaging boundary so the SW and native app never see unbounded input.
+  const MAX_TEXT = 512;    // title / artist / album
+  const MAX_URL = 2048;    // artwork URL
+  const clampText = (s) => (s.length > MAX_TEXT ? s.slice(0, MAX_TEXT) : s);
+  const clampURL = (s) => (s.length > MAX_URL ? "" : s); // drop absurd URLs entirely
+
   window.VinylPodRun = function VinylPodRun(adapter) {
     if (!adapter || typeof adapter.readState !== "function") return;
 
@@ -37,13 +45,19 @@
     // --- normalize a raw state object into the frozen payload contract -------
     function normalize(raw) {
       if (!raw) return null;
-      const num = (v) => (Number.isFinite(+v) ? +v : 0);
+      // Clamp numeric fields to a sane, finite, non-negative range so a bogus
+      // duration/time can't propagate NaN/Infinity or a huge value downstream.
+      const num = (v) => {
+        const n = +v;
+        if (!Number.isFinite(n) || n < 0) return 0;
+        return n > 1e7 ? 0 : n; // >~115 days ⇒ clearly bogus
+      };
       return {
         source: adapter.source,
-        title: String(raw.title || "").trim(),
-        artist: String(raw.artist || "").trim(),
-        album: String(raw.album || "").trim(),
-        artwork: String(raw.artwork || ""),
+        title: clampText(String(raw.title || "").trim()),
+        artist: clampText(String(raw.artist || "").trim()),
+        album: clampText(String(raw.album || "").trim()),
+        artwork: clampURL(String(raw.artwork || "")),
         isPlaying: !!raw.isPlaying,
         currentTime: num(raw.currentTime),
         duration: num(raw.duration)
