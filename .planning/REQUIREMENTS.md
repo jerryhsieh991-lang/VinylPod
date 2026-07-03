@@ -12,7 +12,7 @@ Milestone decisions (locked): **BLEND UI** (keep the liquid-glass architecture/t
 - [x] **FND-01**: Uncommitted WIP (~19 files) landed in logically-grouped commits and re-verified against the 6 performance invariants (idle + playback ≈ 0.0% CPU)
 - [x] **FND-02**: `docs/system-design/` designated the canonical spec; stale/duplicate docs removed (`design_system 2.md`, outdated `PRD.md` status, empty `claude.md`); seven root `*_features.json` consolidated into `07-feature-inventory.md`
 - [x] **FND-03**: `.playwright-mcp/` added to `.gitignore` and transient artifacts removed; repo root de-noised
-- [ ] **FND-04**: Codebase map (`.planning/codebase/`) refreshed after WIP lands so docs reflect committed state
+- [x] **FND-04**: Codebase map (`.planning/codebase/`) refreshed after WIP lands so docs reflect committed state
 
 ### Testing (TST)
 
@@ -107,7 +107,7 @@ Final mapping (each v1 requirement → exactly one phase; roadmapper-finalized d
 | FND-01 | Phase 0 — Land WIP & Reconcile | Complete |
 | FND-02 | Phase 0 — Land WIP & Reconcile | Complete |
 | FND-03 | Phase 0 — Land WIP & Reconcile | Complete |
-| FND-04 | Phase 0 — Land WIP & Reconcile | Pending |
+| FND-04 | Phase 0 — Land WIP & Reconcile | Complete |
 | TST-01 | Phase 1 — Test Foundation | Pending |
 | TST-02 | Phase 1 — Test Foundation | Pending |
 | TST-03 | Phase 1 — Test Foundation | Pending |

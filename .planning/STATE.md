@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 00-03-PLAN.md (SUMMARY written, FND-03 marked complete)
-last_updated: "2026-07-03T18:56:21.819Z"
+stopped_at: Completed 00-04-PLAN.md (map refreshed, phase gate PASS; FND-04 marked complete; human playback check owed)
+last_updated: "2026-07-03T19:07:07.392Z"
 progress:
   total_phases: 7
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
-  percent: 0
+  completed_plans: 4
+  percent: 14
 ---
 
 # Project State: VinylPod
@@ -32,7 +32,7 @@ See: `.planning/PROJECT.md` (updated 2026-07-03)
 
 | Phase | Name | Status | Plans | Research? |
 |-------|------|--------|-------|-----------|
-| 0 | Land WIP & Reconcile | ◐ In Progress (3/4 plans) | 4 | skip |
+| 0 | Land WIP & Reconcile | ● Complete (4/4 plans; human playback check owed) | 4 | skip |
 | 1 | Test Foundation | ○ Pending | 4 | skip |
 | 2 | Sandbox/Loopback + Signing Spike | ○ Pending | 2 | ⚠ warranted (`--research-phase`) |
 | 3 | MAS Scaffold + Private-Framework Removal | ○ Pending | 5 | ⚠ warranted (`--research-phase`) |
@@ -40,16 +40,16 @@ See: `.planning/PROJECT.md` (updated 2026-07-03)
 | 5 | UI Blend | ○ Pending | 4 | skip (design pass; UI hint: yes) |
 | 6 | Store Submission | ○ Pending | 4 | ⚠ warranted (`--research-phase`) |
 
-Progress: ░░░░░░░░░░ 0% (0/7 phases)
+Progress: █░░░░░░░░░ 14% (1/7 phases)
 
 ## Next Action
 
-Execute plan 00-04 (map refresh / phase gate): `/gsd-execute-phase 0` continues
+Close the owed Phase 0 human check (launch dist/VinylPod.app, play via browser extension, confirm ~0.0% CPU in Activity Monitor at idle and during steady playback), then plan Phase 1 or Phase 2: `/gsd-plan-phase 1`
 
 ## Session
 
-**Last session:** 2026-07-03T18:56:21.810Z
-**Stopped at:** Completed 00-03-PLAN.md (SUMMARY written, FND-03 marked complete)
+**Last session:** 2026-07-03T19:07:07.384Z
+**Stopped at:** Completed 00-04-PLAN.md (map refreshed, phase gate PASS; FND-04 marked complete; human playback check owed)
 **Resume file:** None
 
 ## Key Context (carry into planning)
@@ -70,6 +70,7 @@ Execute plan 00-04 (map refresh / phase gate): `/gsd-execute-phase 0` continues
 - 2026-07-03 — 00-01 executed: WIP landed as grouped commits (`fb8ab0a`..`7338518` + external `bb5d282`), 3 deviation fixes (`37a5aa9`, `59342d5`, `e400241` — killed a ~100% idle-CPU MenuBarExtra loop), idle CPU re-profiled 0.00%, FND-01 complete
 - 2026-07-03 — 00-02 executed: docs canonicalized (`51f7cb8`, `212ad4a`, `a01bf3c`) — feature JSONs consolidated into 07-inventory Appendix A, PRD marked HISTORICAL, docs audits landed, README removed; reappeared claude.md/codex.md (NotebookLM exports) relocated to ~/.claude/notes/ via checkpoint disposition; FND-02 complete
 - 2026-07-03 — 00-03 executed: repo root de-noised (`5dfea7f`) — .playwright-mcp/, VinylPod-Complete-Documentation.md, and .planning/research/.cache/ gitignored; 4 stray .DS_Store purged; first fully-clean `git status --porcelain` of the phase; FND-03 complete
+- 2026-07-03 — 00-04 executed: codebase map refreshed (`81170ca`) — five CONCERNS.md items marked RESOLVED with landing SHAs, zero pre-WIP SHA refs remain, Test Coverage Gaps drift flagged for `/gsd-map-codebase` remap; full FND-01..04 gate machine-verified PASS; FND-04 complete. **Owed:** end-of-phase human check (steady-playback CPU ~0.0% via extension bridge) before Phase 0 sign-off
 
 ---
 *Last updated: 2026-07-03 after initialization*
@@ -81,6 +82,7 @@ Execute plan 00-04 (map refresh / phase gate): `/gsd-execute-phase 0` continues
 | Phase 00 P01 | 35m | 3 tasks | 35 files |
 | Phase 00 P02 | 25m | 3 tasks | 12 files |
 | Phase 00 P03 | 4min | 2 tasks | 5 files |
+| Phase 00 P04 | ~8 min | 2 tasks | 1 files |
 
 ## Decisions
 
@@ -90,3 +92,5 @@ Execute plan 00-04 (map refresh / phase gate): `/gsd-execute-phase 0` continues
 - [Phase 00]: docs/system-design/ is the single canonical spec; PRD.md and design_system.md are historical; CONTRACTS.md stays authoritative for frozen API names
 - [Phase 00]: Reappeared root claude.md/codex.md (NotebookLM exports) relocated to ~/.claude/notes/ rather than committed or deleted (T-00-05 disposition)
 - [Phase 00]: .planning/research/.cache/ gitignored (regenerable research cache, not committed); VinylPod-Complete-Documentation.md ignored in place, never deleted
+- [Phase 00]: CONCERNS.md Test Coverage Gaps drift flagged for /gsd-map-codebase remap (tracked Tests/ contradicts no-tests claim) — derived analysis not hand-rewritten
+- [Phase 00]: Steady-playback CPU human check remains OWED before Phase 0 sign-off — DEFERRED verdict surfaced, never claimed machine-verified
