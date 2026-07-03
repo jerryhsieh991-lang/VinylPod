@@ -20,6 +20,15 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_PATH" "$APP/Contents/MacOS/$BIN_NAME"
 
+# SPM resource bundle (Bundle.module) — required since Resources/ was added;
+# without it the app fatals at launch in resource_bundle_accessor.swift.
+RES_BUNDLE="$(dirname "$BIN_PATH")/VinylPod_VinylPod.bundle"
+if [ -d "$RES_BUNDLE" ]; then
+    cp -R "$RES_BUNDLE" "$APP/Contents/Resources/"
+else
+    echo "✗ resource bundle not found at $RES_BUNDLE"; exit 1
+fi
+
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
