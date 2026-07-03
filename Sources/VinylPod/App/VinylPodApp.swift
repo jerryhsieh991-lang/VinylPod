@@ -21,11 +21,31 @@ struct VinylPodApp: App {
     // Observed so the "Show in Menu Bar" toggle can insert/remove the menu-bar item.
     @ObservedObject private var settings = AppEnvironment.shared.settings
 
+    // Equality-guarded binding for MenuBarExtra(isInserted:). MenuBarExtra
+    // re-writes this binding during scene updates; an unguarded write to a
+    // @Published property fires objectWillChange on EVERY assignment (even
+    // when the value is unchanged), which re-invalidates this observed App
+    // body → MenuBarExtra writes again → a self-sustaining ~100%-CPU loop
+    // through AppDelegate.makeMainMenu/MainMenuItemHost.requestUpdate.
+    // Compare-before-assign here is render-loop invariant Rule 2 applied at
+    // the scene boundary.
+    private var menuBarInserted: Binding<Bool> {
+        Binding(
+            get: { AppEnvironment.shared.settings.showInMenuBar },
+            set: { newValue in
+                let settings = AppEnvironment.shared.settings
+                if settings.showInMenuBar != newValue {
+                    settings.showInMenuBar = newValue
+                }
+            }
+        )
+    }
+
     var body: some Scene {
         // `isInserted` binds the menu-bar item's presence to the setting. (If it's
         // hidden, SettingsEffects forces the Dock icon on so there's still an
         // entry point.)
-        MenuBarExtra(isInserted: $settings.showInMenuBar) {
+        MenuBarExtra(isInserted: menuBarInserted) {
             MenuBarContentView()
                 .environmentObject(env.nowPlaying)
                 .environmentObject(env.settings)
