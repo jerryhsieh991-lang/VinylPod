@@ -80,6 +80,39 @@ function boostArtworkURL(url) {
   return url;
 }
 
+// ---- Payload sanitization (trust boundary before native app) ---------------
+// Content scripts already clamp, but the SW is the last hop before the payload
+// crosses the WebSocket into the native app, so re-validate defensively here:
+// bound every string, coerce numbers to finite non-negative, and rebuild a
+// fresh object with ONLY the known fields (drops any injected extra keys).
+const SW_MAX_TEXT = 512;
+const SW_MAX_URL = 2048;
+function swClampText(v) {
+  const s = (typeof v === "string") ? v : "";
+  return s.length > SW_MAX_TEXT ? s.slice(0, SW_MAX_TEXT) : s;
+}
+function swNum(v) {
+  const n = +v;
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return n > 1e7 ? 0 : n;
+}
+function sanitizePayload(p) {
+  if (!p || typeof p !== "object") return null;
+  const url = (typeof p.artwork === "string" && p.artwork.length <= SW_MAX_URL) ? p.artwork : "";
+  const title = swClampText(p.title);
+  if (!title) return null; // no title ⇒ treat as nothing playing
+  return {
+    source: swClampText(p.source),
+    title: title,
+    artist: swClampText(p.artist),
+    album: swClampText(p.album),
+    artwork: boostArtworkURL(url),
+    isPlaying: !!p.isPlaying,
+    currentTime: swNum(p.currentTime),
+    duration: swNum(p.duration)
+  };
+}
+
 // ---- Inbound messages from content scripts / consumers ---------------------
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || typeof msg.type !== "string") return;
@@ -87,9 +120,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   switch (msg.type) {
     case "vinylpod:nowplaying": {
       const tabId = sender.tab && sender.tab.id;
+      // Only accept now-playing reports from an actual tab's content script,
+      // never from an extension page or another sender with no tab context.
       if (tabId != null) {
-        if (msg.payload) msg.payload.artwork = boostArtworkURL(msg.payload.artwork);
-        tabState.set(tabId, { payload: msg.payload, ts: Date.now() });
+        const clean = sanitizePayload(msg.payload);
+        if (clean) {
+          tabState.set(tabId, { payload: clean, ts: Date.now() });
+        } else {
+          tabState.delete(tabId); // empty/invalid ⇒ this tab is no longer playing
+        }
         publish();
       }
       break;
@@ -181,8 +220,20 @@ chrome.runtime.onInstalled.addListener(injectOpenTabs);
 let ws = null;
 let wsAppSeen = false;       // app accepted a connection at least once this session
 let wsQuietUntil = 0;        // do not attempt before this epoch-ms (silence window)
-const WS_QUIET_DOWN = 120000; // app never answered → stay quiet 2 min between probes
-const WS_QUIET_DROP = 15000;  // app was up and dropped → re-probe sooner (15s)
+let wsFailStreak = 0;        // consecutive failed probes → drives exponential backoff
+// Backoff bounds. Each consecutive refusal doubles the base delay up to a cap,
+// then we add ±25% jitter so many browser instances don't re-probe in lockstep.
+const WS_BASE_DROP = 3000;    // app was up and dropped → first re-probe after ~3s
+const WS_BASE_DOWN = 15000;   // app never answered → start probing every ~15s
+const WS_MAX_BACKOFF = 120000; // hard cap: never wait more than 2 min between probes
+
+// Exponential backoff with a cap and ±25% jitter, keyed off the failure streak.
+function nextBackoffMs() {
+  const base = wsAppSeen ? WS_BASE_DROP : WS_BASE_DOWN;
+  const exp = Math.min(base * Math.pow(2, Math.max(0, wsFailStreak - 1)), WS_MAX_BACKOFF);
+  const jitter = exp * 0.25 * (Math.random() * 2 - 1); // ±25%
+  return Math.max(1000, Math.round(exp + jitter));
+}
 
 function hasDeliverableTrack() {
   for (const rec of tabState.values()) if (rec && rec.payload) return true;
@@ -217,6 +268,7 @@ function wsConnect() {
   }
   ws.onopen = () => {
     wsAppSeen = true;
+    wsFailStreak = 0;          // success — reset the backoff ladder
     setQuietUntil(0);          // app is up — clear any silence window
     wsSend({ type: "nowplaying", payload: recomputeActive() });
   };
@@ -234,10 +286,12 @@ function wsConnect() {
 
 function onWsDown() {
   ws = null;
-  // Open a silence window so we stop re-logging refused attempts. Shorter when
-  // the app was up this session (likely a transient drop), longer when it has
-  // never answered (probably not running). The heartbeat re-probes afterward.
-  setQuietUntil(Date.now() + (wsAppSeen ? WS_QUIET_DROP : WS_QUIET_DOWN));
+  wsFailStreak++;
+  // Open a silence window so we stop re-logging refused attempts. The delay
+  // grows exponentially (capped, jittered) with each consecutive failure, so a
+  // closed app costs progressively fewer probes over time. The heartbeat
+  // re-probes once the window elapses.
+  setQuietUntil(Date.now() + nextBackoffMs());
 }
 
 function setQuietUntil(ts) {

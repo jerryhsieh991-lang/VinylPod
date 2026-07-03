@@ -20,6 +20,18 @@
 
   var POLL_MS = 1000;
 
+  // Hard caps on untrusted page-supplied strings (mediaSession metadata is set
+  // by the page and can be arbitrary). Clamp BEFORE posting across the bridge.
+  var MAX_TEXT = 512;   // title / artist / album
+  var MAX_URL = 2048;   // artwork URL
+  function clampText(s) { return s.length > MAX_TEXT ? s.slice(0, MAX_TEXT) : s; }
+  function clampURL(s) { return s.length > MAX_URL ? "" : s; }
+  function sanNum(v) {
+    var n = +v;
+    if (!isFinite(n) || n < 0) return 0;
+    return n > 1e7 ? 0 : n; // clearly-bogus duration/time ⇒ 0
+  }
+
   var lastKey = null;        // serialized signature of the last posted payload
   var lastWasGone = false;   // whether we last posted a "gone" message
   var pollTimer = null;
@@ -104,10 +116,10 @@
     var ms = (typeof navigator !== "undefined") ? navigator.mediaSession : null;
     var meta = (ms && ms.metadata) ? ms.metadata : null;
 
-    var title = (meta && meta.title) ? String(meta.title) : "";
-    var artist = (meta && meta.artist) ? String(meta.artist) : "";
-    var album = (meta && meta.album) ? String(meta.album) : "";
-    var artwork = pickArtwork(meta);
+    var title = clampText((meta && meta.title) ? String(meta.title) : "");
+    var artist = clampText((meta && meta.artist) ? String(meta.artist) : "");
+    var album = clampText((meta && meta.album) ? String(meta.album) : "");
+    var artwork = clampURL(pickArtwork(meta));
 
     var el = pickMediaElement();
     chosenEl = el; // keep for control even if we end up reporting "gone"
@@ -136,12 +148,8 @@
     var currentTime = 0;
     var duration = 0;
     if (el) {
-      if (typeof el.currentTime === "number" && isFinite(el.currentTime)) {
-        currentTime = el.currentTime;
-      }
-      if (typeof el.duration === "number" && isFinite(el.duration)) {
-        duration = el.duration;
-      }
+      currentTime = sanNum(el.currentTime);
+      duration = sanNum(el.duration);
     }
 
     return {
