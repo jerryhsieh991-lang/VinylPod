@@ -22,7 +22,6 @@ struct SettingsMenuButton: View {
     var onQuit: () -> Void
     var triggerSize: CGFloat = 24
     var glyphSize: CGFloat = 12
-    var menuOffsetY: CGFloat = 30
     var triggerFill: Color? = nil
     var triggerStroke: Color? = nil
     var triggerForeground: Color? = nil
@@ -197,75 +196,59 @@ struct SettingsMenuButton: View {
             settings.showInMenuBar.toggle()
         }
 
-        // Vinyl Style (radio).
-        sectionHeader("Vinyl Style")
-        checkRow(title: "Vinyl", checked: settings.vinylStyle == .vinyl) {
-            settings.vinylStyle = .vinyl
-        }
-        checkRow(title: "Image", checked: settings.vinylStyle == .image) {
-            settings.vinylStyle = .image
+        // Visual Style (radio).
+        sectionHeader("Visual Style")
+        ForEach(VinylStyle.allCases, id: \.self) { style in
+            checkRow(title: style.displayName,
+                     checked: settings.vinylStyle == style) {
+                settings.vinylStyle = style
+            }
         }
 
         checkRow(title: "Show progress", checked: settings.showProgress) {
             settings.showProgress.toggle()
         }
 
-        divider
-
-        // Window / system toggles.
-        checkRow(title: "Keep Window in Front", checked: settings.keepWindowInFront) {
-            settings.keepWindowInFront.toggle()
-            // Native window layering (NSWindowLevel), not z-index.
-            WindowCoordinator.shared.manager?.applyStacking(settings.keepWindowInFront ? .front : .back)
-        }
-        checkRow(title: "Launch at Login", checked: settings.launchAtLogin) {
-            settings.launchAtLogin.toggle()
-        }
-        checkRow(title: "Show Artwork in Dock", checked: settings.showArtworkInDock) {
-            settings.showArtworkInDock.toggle()
-        }
-        checkRow(title: "Hide Dock Icon", checked: settings.hideDockIcon) {
-            settings.hideDockIcon.toggle()
-        }
-        checkRow(title: "Cover art as wallpaper", checked: settings.coverArtAsWallpaper) {
-            settings.coverArtAsWallpaper.toggle()
-        }
-        checkRow(title: "Hide notch in fullscreen", checked: settings.hideNotchInFullscreen) {
-            settings.hideNotchInFullscreen.toggle()
-        }
-
-        divider
-
-        // Plain action rows (no-op / print for now).
-        checkRow(title: "Keyboard shortcuts", checked: false, showsCheckColumn: true) {
-            KeyboardShortcutsWindowController.shared.show()
-        }
-        checkRow(title: "Appearance", checked: false, showsCheckColumn: true) {
-            // Cycle native appearance: system → dark → light → system.
-            // Affects native controls/menus (AppKit), not custom-drawn glass.
-            switch NSApp.appearance?.name {
-            case .some(.darkAqua):
-                NSApp.appearance = NSAppearance(named: .aqua)
-            case .some(.aqua):
-                NSApp.appearance = nil
-            default:
-                NSApp.appearance = NSAppearance(named: .darkAqua)
+        sectionHeader("Liquid Glass")
+        ForEach(GlassTintStrength.allCases) { strength in
+            checkRow(title: strength.displayName,
+                     checked: settings.glassTintStrength == strength) {
+                settings.glassTintStrength = strength
             }
         }
 
         divider
 
+        // The long-tail system/window toggles (Launch at Login, Show Artwork in
+        // Dock, Hide Dock Icon, Cover art as wallpaper, Hide notch in fullscreen,
+        // Keep Window in Front) and the About / Keyboard-shortcuts actions moved
+        // OUT of this dropdown into the proper Settings window (⌘,). The dropdown
+        // now keeps only the quick, frequently-touched controls above plus the
+        // actions below.
+
+        // "Appearance" label reflects the current adaptive-accent state so the
+        // row is informative at a glance.
+        checkRow(title: appearanceRowTitle, checked: false, showsCheckColumn: true) {
+            withAnimation(VPTheme.fade) { open = false }
+            SettingsWindowController.shared.show(settings: settings)
+        }
+
+        // Open the full, tabbed Settings window (⌘,).
+        checkRow(title: "Open Settings…", checked: false, showsCheckColumn: true) {
+            withAnimation(VPTheme.fade) { open = false }
+            SettingsWindowController.shared.show(settings: settings)
+        }
+
+        divider
+
         checkRow(title: "Rate us", checked: false, showsCheckColumn: true) {
-            // TODO: real App Store URL
-            if let url = URL(string: "https://apps.apple.com/") { NSWorkspace.shared.open(url) }
+            NSWorkspace.shared.open(VinylPodLinks.appStoreURL)
         }
         actionRow(title: "Share our app", glyph: "square.and.arrow.up") {
-            // share link copied to clipboard
-            let pb = NSPasteboard.general; pb.clearContents(); pb.setString("https://vinylpod.app", forType: .string)
-        }
-        checkRow(title: "About", checked: false, showsCheckColumn: true) {
-            NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "VinylPod"])
-            NSApp.activate(ignoringOtherApps: true)
+            // Share link copied to clipboard.
+            let pb = NSPasteboard.general
+            pb.clearContents()
+            pb.setString(VinylPodLinks.websiteURL.absoluteString, forType: .string)
         }
 
         divider
@@ -275,6 +258,11 @@ struct SettingsMenuButton: View {
             withAnimation(VPTheme.fade) { open = false }
             onQuit()
         }
+    }
+
+    /// "Appearance" row label, showing the current accent state.
+    private var appearanceRowTitle: String {
+        settings.useAdaptiveAccent ? "Appearance — Adaptive" : "Appearance — Custom accent"
     }
 
     private func menuTitle(for mode: WindowMode) -> String {
