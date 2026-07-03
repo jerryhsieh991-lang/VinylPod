@@ -100,25 +100,56 @@ Explicitly excluded. Documented to prevent scope creep.
 
 ## Traceability
 
-Provisional mapping (roadmapper finalizes during ROADMAP creation).
+Final mapping (each v1 requirement → exactly one phase; roadmapper-finalized during ROADMAP creation).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FND-01..04 | Phase 0 — Land WIP & Reconcile | Pending |
-| TST-01..05 | Phase 1 — Test Foundation | Pending |
-| MAS-01..02 | Phase 2 — Sandbox/Loopback + Signing Spike | Pending |
-| MAS-03..08 | Phase 3 — MAS Scaffold + Private-Framework Removal | Pending |
-| CAP-01..05 | Phase 4 — Phase 2 Capture | Pending |
-| SEC-01..03 | Phase 4 — Phase 2 Capture | Pending |
-| SCR-01..06 | Phase 4 — Phase 2 Capture | Pending |
-| UIB-01..04 | Phase 5 — UI Blend | Pending |
-| SUB-01..04 | Phase 6 — Store Submission | Pending |
+| FND-01 | Phase 0 — Land WIP & Reconcile | Pending |
+| FND-02 | Phase 0 — Land WIP & Reconcile | Pending |
+| FND-03 | Phase 0 — Land WIP & Reconcile | Pending |
+| FND-04 | Phase 0 — Land WIP & Reconcile | Pending |
+| TST-01 | Phase 1 — Test Foundation | Pending |
+| TST-02 | Phase 1 — Test Foundation | Pending |
+| TST-03 | Phase 1 — Test Foundation | Pending |
+| TST-04 | Phase 1 — Test Foundation | Pending |
+| TST-05 | Phase 1 — Test Foundation | Pending |
+| MAS-01 | Phase 2 — Sandbox/Loopback + Signing Spike | Pending |
+| MAS-02 | Phase 2 — Sandbox/Loopback + Signing Spike | Pending |
+| MAS-03 | Phase 3 — MAS Scaffold + Private-Framework Removal | Pending |
+| MAS-04 | Phase 3 — MAS Scaffold + Private-Framework Removal | Pending |
+| MAS-05 | Phase 3 — MAS Scaffold + Private-Framework Removal | Pending |
+| MAS-06 | Phase 3 — MAS Scaffold + Private-Framework Removal | Pending |
+| MAS-07 | Phase 3 — MAS Scaffold + Private-Framework Removal | Pending |
+| MAS-08 | Phase 3 — MAS Scaffold + Private-Framework Removal | Pending |
+| CAP-01 | Phase 4 — Phase 2 Capture (Precedence, then Scrobbling) | Pending |
+| CAP-02 | Phase 4 — Phase 2 Capture (Precedence, then Scrobbling) | Pending |
+| CAP-03 | Phase 4 — Phase 2 Capture (Precedence, then Scrobbling) | Pending |
+| CAP-04 | Phase 4 — Phase 2 Capture (Precedence, then Scrobbling) | Pending |
+| CAP-05 | Phase 4 — Phase 2 Capture (Precedence, then Scrobbling) | Pending |
+| SEC-01 | Phase 4 — Phase 2 Capture (Precedence, then Scrobbling) | Pending |
+| SEC-02 | Phase 4 — Phase 2 Capture (Precedence, then Scrobbling) | Pending |
+| SEC-03 | Phase 4 — Phase 2 Capture (Precedence, then Scrobbling) | Pending |
+| SCR-01 | Phase 4 — Phase 2 Capture (Precedence, then Scrobbling) | Pending |
+| SCR-02 | Phase 4 — Phase 2 Capture (Precedence, then Scrobbling) | Pending |
+| SCR-03 | Phase 4 — Phase 2 Capture (Precedence, then Scrobbling) | Pending |
+| SCR-04 | Phase 4 — Phase 2 Capture (Precedence, then Scrobbling) | Pending |
+| SCR-05 | Phase 4 — Phase 2 Capture (Precedence, then Scrobbling) | Pending |
+| SCR-06 | Phase 4 — Phase 2 Capture (Precedence, then Scrobbling) | Pending |
+| UIB-01 | Phase 5 — UI Blend | Pending |
+| UIB-02 | Phase 5 — UI Blend | Pending |
+| UIB-03 | Phase 5 — UI Blend | Pending |
+| UIB-04 | Phase 5 — UI Blend | Pending |
+| SUB-01 | Phase 6 — Store Submission | Pending |
+| SUB-02 | Phase 6 — Store Submission | Pending |
+| SUB-03 | Phase 6 — Store Submission | Pending |
+| SUB-04 | Phase 6 — Store Submission | Pending |
 
 **Coverage:**
 - v1 requirements: 39 total (FND 4 · TST 5 · MAS 8 · CAP 5 · SEC 3 · SCR 6 · UIB 4 · SUB 4)
 - Mapped to phases: 39
 - Unmapped: 0 ✓
+- Duplicates (requirement in >1 phase): 0 ✓
 
 ---
 *Requirements defined: 2026-07-03*
-*Last updated: 2026-07-03 after initial definition*
+*Last updated: 2026-07-03 — traceability finalized during ROADMAP creation*
