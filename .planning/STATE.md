@@ -31,7 +31,7 @@ See: `.planning/PROJECT.md` (updated 2026-07-03)
 
 | Phase | Name | Status | Plans | Research? |
 |-------|------|--------|-------|-----------|
-| 0 | Land WIP & Reconcile | ◐ In Progress (1/4 plans) | 4 | skip |
+| 0 | Land WIP & Reconcile | ◐ In Progress (2/4 plans) | 4 | skip |
 | 1 | Test Foundation | ○ Pending | 4 | skip |
 | 2 | Sandbox/Loopback + Signing Spike | ○ Pending | 2 | ⚠ warranted (`--research-phase`) |
 | 3 | MAS Scaffold + Private-Framework Removal | ○ Pending | 5 | ⚠ warranted (`--research-phase`) |
@@ -43,12 +43,12 @@ Progress: ░░░░░░░░░░ 0% (0/7 phases)
 
 ## Next Action
 
-Execute plan 00-02 (README/docs disposition): `/gsd-execute-phase 0` continues
+Execute plan 00-03 (de-noise / gitignore disposition): `/gsd-execute-phase 0` continues
 
 ## Session
 
-- Last session: 2026-07-03 — executed 00-01-PLAN.md (sequential executor)
-- Stopped at: Completed 00-01-PLAN.md (SUMMARY written, FND-01 marked complete)
+- Last session: 2026-07-03 — executed 00-02-PLAN.md (sequential executor)
+- Stopped at: Completed 00-02-PLAN.md (SUMMARY written, FND-02 marked complete)
 - Resume file: None
 
 ## Key Context (carry into planning)
@@ -67,6 +67,7 @@ Execute plan 00-02 (README/docs disposition): `/gsd-execute-phase 0` continues
 - 2026-07-03 — REQUIREMENTS.md defined, 39 v1 (`2159c78`)
 - 2026-07-03 — ROADMAP.md created, 7 phases / 28 plans, traceability finalized (`211a841`)
 - 2026-07-03 — 00-01 executed: WIP landed as grouped commits (`fb8ab0a`..`7338518` + external `bb5d282`), 3 deviation fixes (`37a5aa9`, `59342d5`, `e400241` — killed a ~100% idle-CPU MenuBarExtra loop), idle CPU re-profiled 0.00%, FND-01 complete
+- 2026-07-03 — 00-02 executed: docs canonicalized (`51f7cb8`, `212ad4a`, `a01bf3c`) — feature JSONs consolidated into 07-inventory Appendix A, PRD marked HISTORICAL, docs audits landed, README removed; reappeared claude.md/codex.md (NotebookLM exports) relocated to ~/.claude/notes/ via checkpoint disposition; FND-02 complete
 
 ---
 *Last updated: 2026-07-03 after initialization*
@@ -76,9 +77,12 @@ Execute plan 00-02 (README/docs disposition): `/gsd-execute-phase 0` continues
 | Phase | Plan | Duration | Notes |
 |-------|------|----------|-------|
 | Phase 00 P01 | 35m | 3 tasks | 35 files |
+| Phase 00 P02 | 25m | 3 tasks | 12 files |
 
 ## Decisions
 
 - [Phase ?]: MenuBarExtra(isInserted:) must use compare-before-assign Binding — raw @Published binding self-sustains a ~100%-CPU render loop
 - [Phase ?]: .build lives outside iCloud via symlink to ~/Library/Caches/VinylPodMac.build — iCloud xattrs break codesign and swiftbuild db
 - [Phase ?]: make_app.sh must bundle VinylPod_VinylPod.bundle — Bundle.module fatals at launch without it
+- [Phase 00]: docs/system-design/ is the single canonical spec; PRD.md and design_system.md are historical; CONTRACTS.md stays authoritative for frozen API names
+- [Phase 00]: Reappeared root claude.md/codex.md (NotebookLM exports) relocated to ~/.claude/notes/ rather than committed or deleted (T-00-05 disposition)
