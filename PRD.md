@@ -1,8 +1,9 @@
 # VinylPod — Product Requirements Document (PRD)
 
-> Status: **DRAFT — awaiting founder sign-off**
-> Date: 2026-06-28
-> Phase: Thinking & Planning (no application code written yet)
+> Status: **HISTORICAL — founding PRD, kept for original intent.**
+> The app described here has since been **built** (~9,300 LOC Swift + MV3 browser extension).
+> Current truth lives in `docs/system-design/` (canonical product + architecture spec) and `.planning/` (requirements & roadmap).
+> Original draft date: 2026-06-28
 > Platform: macOS native + cross-browser extension
 
 ---
