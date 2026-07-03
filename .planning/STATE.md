@@ -3,12 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-07-03T18:49:52.503Z"
+stopped_at: Completed 00-03-PLAN.md (SUMMARY written, FND-03 marked complete)
+last_updated: "2026-07-03T18:56:21.819Z"
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -31,7 +32,7 @@ See: `.planning/PROJECT.md` (updated 2026-07-03)
 
 | Phase | Name | Status | Plans | Research? |
 |-------|------|--------|-------|-----------|
-| 0 | Land WIP & Reconcile | ◐ In Progress (2/4 plans) | 4 | skip |
+| 0 | Land WIP & Reconcile | ◐ In Progress (3/4 plans) | 4 | skip |
 | 1 | Test Foundation | ○ Pending | 4 | skip |
 | 2 | Sandbox/Loopback + Signing Spike | ○ Pending | 2 | ⚠ warranted (`--research-phase`) |
 | 3 | MAS Scaffold + Private-Framework Removal | ○ Pending | 5 | ⚠ warranted (`--research-phase`) |
@@ -43,13 +44,13 @@ Progress: ░░░░░░░░░░ 0% (0/7 phases)
 
 ## Next Action
 
-Execute plan 00-03 (de-noise / gitignore disposition): `/gsd-execute-phase 0` continues
+Execute plan 00-04 (map refresh / phase gate): `/gsd-execute-phase 0` continues
 
 ## Session
 
-- Last session: 2026-07-03 — executed 00-02-PLAN.md (sequential executor)
-- Stopped at: Completed 00-02-PLAN.md (SUMMARY written, FND-02 marked complete)
-- Resume file: None
+**Last session:** 2026-07-03T18:56:21.810Z
+**Stopped at:** Completed 00-03-PLAN.md (SUMMARY written, FND-03 marked complete)
+**Resume file:** None
 
 ## Key Context (carry into planning)
 
@@ -68,6 +69,7 @@ Execute plan 00-03 (de-noise / gitignore disposition): `/gsd-execute-phase 0` co
 - 2026-07-03 — ROADMAP.md created, 7 phases / 28 plans, traceability finalized (`211a841`)
 - 2026-07-03 — 00-01 executed: WIP landed as grouped commits (`fb8ab0a`..`7338518` + external `bb5d282`), 3 deviation fixes (`37a5aa9`, `59342d5`, `e400241` — killed a ~100% idle-CPU MenuBarExtra loop), idle CPU re-profiled 0.00%, FND-01 complete
 - 2026-07-03 — 00-02 executed: docs canonicalized (`51f7cb8`, `212ad4a`, `a01bf3c`) — feature JSONs consolidated into 07-inventory Appendix A, PRD marked HISTORICAL, docs audits landed, README removed; reappeared claude.md/codex.md (NotebookLM exports) relocated to ~/.claude/notes/ via checkpoint disposition; FND-02 complete
+- 2026-07-03 — 00-03 executed: repo root de-noised (`5dfea7f`) — .playwright-mcp/, VinylPod-Complete-Documentation.md, and .planning/research/.cache/ gitignored; 4 stray .DS_Store purged; first fully-clean `git status --porcelain` of the phase; FND-03 complete
 
 ---
 *Last updated: 2026-07-03 after initialization*
@@ -78,6 +80,7 @@ Execute plan 00-03 (de-noise / gitignore disposition): `/gsd-execute-phase 0` co
 |-------|------|----------|-------|
 | Phase 00 P01 | 35m | 3 tasks | 35 files |
 | Phase 00 P02 | 25m | 3 tasks | 12 files |
+| Phase 00 P03 | 4min | 2 tasks | 5 files |
 
 ## Decisions
 
@@ -86,3 +89,4 @@ Execute plan 00-03 (de-noise / gitignore disposition): `/gsd-execute-phase 0` co
 - [Phase ?]: make_app.sh must bundle VinylPod_VinylPod.bundle — Bundle.module fatals at launch without it
 - [Phase 00]: docs/system-design/ is the single canonical spec; PRD.md and design_system.md are historical; CONTRACTS.md stays authoritative for frozen API names
 - [Phase 00]: Reappeared root claude.md/codex.md (NotebookLM exports) relocated to ~/.claude/notes/ rather than committed or deleted (T-00-05 disposition)
+- [Phase 00]: .planning/research/.cache/ gitignored (regenerable research cache, not committed); VinylPod-Complete-Documentation.md ignored in place, never deleted
