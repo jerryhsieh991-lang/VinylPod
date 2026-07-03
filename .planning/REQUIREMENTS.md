@@ -9,7 +9,7 @@ Milestone decisions (locked): **BLEND UI** (keep the liquid-glass architecture/t
 
 ### Foundation (FND)
 
-- [ ] **FND-01**: Uncommitted WIP (~19 files) landed in logically-grouped commits and re-verified against the 6 performance invariants (idle + playback ≈ 0.0% CPU)
+- [x] **FND-01**: Uncommitted WIP (~19 files) landed in logically-grouped commits and re-verified against the 6 performance invariants (idle + playback ≈ 0.0% CPU)
 - [ ] **FND-02**: `docs/system-design/` designated the canonical spec; stale/duplicate docs removed (`design_system 2.md`, outdated `PRD.md` status, empty `claude.md`); seven root `*_features.json` consolidated into `07-feature-inventory.md`
 - [ ] **FND-03**: `.playwright-mcp/` added to `.gitignore` and transient artifacts removed; repo root de-noised
 - [ ] **FND-04**: Codebase map (`.planning/codebase/`) refreshed after WIP lands so docs reflect committed state
@@ -104,7 +104,7 @@ Final mapping (each v1 requirement → exactly one phase; roadmapper-finalized d
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FND-01 | Phase 0 — Land WIP & Reconcile | Pending |
+| FND-01 | Phase 0 — Land WIP & Reconcile | Complete |
 | FND-02 | Phase 0 — Land WIP & Reconcile | Pending |
 | FND-03 | Phase 0 — Land WIP & Reconcile | Pending |
 | FND-04 | Phase 0 — Land WIP & Reconcile | Pending |
@@ -145,6 +145,7 @@ Final mapping (each v1 requirement → exactly one phase; roadmapper-finalized d
 | SUB-04 | Phase 6 — Store Submission | Pending |
 
 **Coverage:**
+
 - v1 requirements: 39 total (FND 4 · TST 5 · MAS 8 · CAP 5 · SEC 3 · SCR 6 · UIB 4 · SUB 4)
 - Mapped to phases: 39
 - Unmapped: 0 ✓
