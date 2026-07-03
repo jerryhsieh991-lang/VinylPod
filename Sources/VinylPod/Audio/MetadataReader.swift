@@ -90,6 +90,12 @@ final class MetadataReader: MetadataReading {
         ).first else { return nil }
         // Artwork is delivered as raw image data (JPEG/PNG inside the container).
         guard let data = try await item.load(.dataValue) else { return nil }
-        return NSImage(data: data)
+        // FIX (perf): `NSImage(data:)` fully decodes the embedded cover art. On a
+        // @MainActor method that decode blocks the UI. Hop the raw bytes to a
+        // detached task so decode happens off the main thread; the resulting
+        // NSImage is then handed back and used on the main actor.
+        return await Task.detached(priority: .userInitiated) {
+            NSImage(data: data)
+        }.value
     }
 }

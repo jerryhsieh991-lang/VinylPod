@@ -63,6 +63,11 @@ final class NowPlayingService: ObservableObject {
     private var queue: [URL] = []
     private var index: Int = 0
 
+    /// OPTIONAL native desktop-app (Spotify/Music) capture, only alive while the
+    /// `nativeCaptureEnabled` setting is on. The browser bridge remains the
+    /// default source; this merely supplements it when explicitly enabled.
+    private var nativeCapture: NativeMediaRemoteCapture?
+
     init() {}
 
     /// Load a list of local files and start playing the first.
@@ -110,6 +115,57 @@ final class NowPlayingService: ObservableObject {
     /// Called by BrowserBridge when an extension client connects/disconnects.
     func setBridgeConnected(_ connected: Bool) {
         if bridgeConnected != connected { bridgeConnected = connected }
+    }
+
+    /// Start or stop the OPTIONAL native desktop-app capture based on the
+    /// `nativeCaptureEnabled` setting. Idempotent: safe to call whenever the
+    /// toggle changes. When enabled, the adapter's callback is routed into the
+    /// existing external-update path (same one the browser bridge uses), tagged
+    /// with `.spotify` or `.appleMusic` when determinable. When disabled it
+    /// tears the adapter down, and nothing about the default browser-bridge
+    /// behavior changes.
+    ///
+    /// - Note: The native adapter pushes at ≤ 1 Hz and only on real change, so
+    ///   this respects the `position` @Published perf invariant.
+    func attachNativeCapture(settings: AppSettings) {
+        if settings.nativeCaptureEnabled {
+            guard nativeCapture == nil else { return }
+            let capture = NativeMediaRemoteCapture()
+            capture.onUpdate = { [weak self] snap in
+                guard let self else { return }
+                // Only supplement — never override an active local-file playback.
+                if self.track.source == .localFile { return }
+
+                let source: PlaybackSource
+                switch snap.bundleIdentifier {
+                case "com.apple.Music":   source = .appleMusic
+                case "com.spotify.client": source = .spotify
+                default:                   source = .spotify
+                }
+                var t = Track()
+                t.title = snap.title
+                t.artist = snap.artist
+                t.album = snap.album
+                t.duration = snap.duration
+                t.source = source
+                self.updateFromExternal(t,
+                                        isPlaying: snap.isPlaying,
+                                        position: snap.elapsed,
+                                        duration: snap.duration)
+            }
+            nativeCapture = capture
+            capture.start()
+        } else {
+            nativeCapture?.stop()
+            nativeCapture = nil
+        }
+    }
+
+    /// Whether the live native adapter has actually observed data from
+    /// MediaRemote (false when entitlement-gated / unavailable). Read by the
+    /// capture settings UI for its live indicator.
+    var nativeCaptureDidReceiveData: Bool {
+        nativeCapture?.didReceiveData ?? false
     }
 
     func playPause() {
@@ -200,8 +256,8 @@ final class AppSettings: ObservableObject {
     @Published var musicSource: PlaybackSource = .spotify {
         didSet { UserDefaults.standard.set(musicSource.rawValue, forKey: "musicSource") }
     }
-    /// "Vinyl Style" radio group.
-    @Published var vinylStyle: VinylStyle = .image {
+    /// Visual style radio group. The stored key is legacy-compatible.
+    @Published var vinylStyle: VinylStyle = .liquidDisc {
         didSet { UserDefaults.standard.set(vinylStyle.rawValue, forKey: "vinylStyle") }
     }
     /// How strongly album colors tint the liquid glass membranes.
@@ -225,6 +281,14 @@ final class AppSettings: ObservableObject {
     @Published var coverArtAsWallpaper = false { didSet { persist("coverArtAsWallpaper", coverArtAsWallpaper) } }
     @Published var hideNotchInFullscreen = false { didSet { persist("hideNotchInFullscreen", hideNotchInFullscreen) } }
 
+    /// OPTIONAL, EXPERIMENTAL: capture Now Playing directly from desktop apps
+    /// (Spotify.app / Music.app) via the private MediaRemote framework. OFF by
+    /// default — the browser extension remains the default capture path. May be
+    /// a no-op on macOS 15.4+ where MediaRemote is entitlement-gated.
+    @Published var nativeCaptureEnabled = false {
+        didSet { UserDefaults.standard.set(nativeCaptureEnabled, forKey: "settings.nativeCaptureEnabled") }
+    }
+
     private func persist(_ key: String, _ value: Bool) {
         UserDefaults.standard.set(value, forKey: key)
     }
@@ -241,8 +305,13 @@ final class AppSettings: ObservableObject {
         customBackgroundURL = UserDefaults.standard.url(forKey: "customBackgroundURL")
         if let raw = UserDefaults.standard.string(forKey: "musicSource"),
            let s = PlaybackSource(rawValue: raw) { musicSource = s }
-        if let raw = UserDefaults.standard.string(forKey: "vinylStyle"),
-           let v = VinylStyle(rawValue: raw) { vinylStyle = v }
+        if let raw = UserDefaults.standard.string(forKey: "vinylStyle") {
+            if let v = VinylStyle(rawValue: raw) {
+                vinylStyle = v
+            } else if raw == "image" {
+                vinylStyle = .liquidDisc
+            }
+        }
         if let raw = UserDefaults.standard.string(forKey: "glassTintStrength"),
            let strength = GlassTintStrength(rawValue: raw) { glassTintStrength = strength }
         showProgress      = Self.bool("showProgress", default: true)
@@ -254,6 +323,7 @@ final class AppSettings: ObservableObject {
         hideDockIcon      = Self.bool("hideDockIcon", default: true)
         coverArtAsWallpaper = Self.bool("coverArtAsWallpaper", default: false)
         hideNotchInFullscreen = Self.bool("hideNotchInFullscreen", default: false)
+        nativeCaptureEnabled = Self.bool("settings.nativeCaptureEnabled", default: false)
     }
 
     func setAccent(from color: Color?) {
