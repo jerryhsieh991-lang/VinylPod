@@ -10,6 +10,12 @@ AppKit), no third-party dependencies.
 This folder documents the product and architecture across eight slices. Start
 here, then dive into the section you care about.
 
+**Canonical notice:** this folder is the **single canonical product +
+architecture spec** for VinylPod. Root-level `PRD.md` and `design_system.md`
+are historical documents kept for original intent; `CONTRACTS.md` remains
+the frozen public-API name contract and is not superseded by this folder;
+`.planning/` holds the current requirements and roadmap.
+
 | # | Doc | Covers |
 |---|-----|--------|
 | 00 | [Product vision & target user](00-product-vision.md) | What VinylPod is, who it's for, value proposition, competitive positioning |

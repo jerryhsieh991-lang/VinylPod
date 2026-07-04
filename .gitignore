@@ -1,4 +1,4 @@
-.build/
+.build
 .swiftpm/
 .DS_Store
 *.xcodeproj/xcuserdata/
@@ -10,3 +10,8 @@ SafariExtension/build/
 *.xcodeproj/xcuserdata/
 SafariExtension/**/xcuserdata/
 .playwright-mcp/
+# Agent worktrees / harness scratch (never publish)
+.claude/
+# Regenerable orchestrator cache + generated doc stitch
+.planning/research/.cache/
+VinylPod-Complete-Documentation.md

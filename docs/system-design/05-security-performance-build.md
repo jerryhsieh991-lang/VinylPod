@@ -54,7 +54,7 @@ fields.
 |----|--------|--------------------|
 | T1 | **DoS via frame flooding** — extension hammers the server with large or rapid frames | `ws.maximumMessageSize = 256 * 1024` (NWProtocol option); `handle()` re-checks `data.count <= 256 * 1024` before decode |
 | T2 | **Connection exhaustion** — hundreds of concurrent connections pile up unbounded | `accept()` caps at 6; oldest connection is evicted when the cap is hit |
-| T3 | **SSRF via artwork URL** — payload supplies `artwork: "http://192.168.1.1/admin"` to reach a private host | `isPublicHost()` blocks loopback (`127.*`, `localhost`, `::1`, `0.0.0.0`), link-local (`169.254.*`), RFC-1918 (`10.*`, `172.16–31.*`, `192.168.*`), `.local`, and `.localhost` TLDs |
+| T3 | **SSRF via artwork URL** — payload supplies `artwork: "http://192.168.1.1/admin"` to reach a private host | ⚠️ **PARTIAL — bypassable, hardening pending.** `isPublicHost()` string-matches the literal host against loopback (`127.*`, `localhost`, `::1`, `0.0.0.0`), link-local (`169.254.*`), RFC-1918, `.local`/`.localhost`. It does **not** re-validate the resolved IP, HTTP redirect targets, or numeric/IPv6 IP encodings (`http://2130706433/`, `0x7f000001`, `[fe80::1]`, `[::ffff:127.0.0.1]`), so those bypass it. Impact is *blind* SSRF (response only decoded as an image, loopback-only). See `.planning/SECURITY-AUDIT-2026-07-03.md` HIGH-2. |
 | T4 | **Local file read via `file://` URL** — payload supplies `artwork: "file:///etc/passwd"` | `loadArtwork()` only proceeds if scheme is `http` or `https`; all other schemes are rejected before any fetch |
 | T5 | **Memory exhaustion via huge image response** — server returns a multi-GB image body | `URLSession` response capped at `8 * 1024 * 1024` bytes; responses larger than 8 MB are silently discarded |
 | T6 | **`data:` URI → `file://` dereference** — payload supplies a `data:` URI that could trick `URL(fileURLWithPath:)` | `decodeDataURI()` splits the string manually (no URL loading, no `Data(contentsOf:)`); only the payload after the comma is decoded as base64 or percent-encoding |
@@ -76,6 +76,12 @@ fields.
   surface an HTTP `Origin` header, so cross-origin WebSocket connections from a
   web page in the same browser are possible in principle. In practice, this attack
   requires the same user to visit a malicious page while VinylPod is running.
+- **SSRF resolved-IP / redirect / encoding checks (T3).** The artwork-URL guard
+  validates only the literal host string; it does not check the resolved IP, follow-up
+  redirect targets, or numeric/IPv6 encodings. Blind, loopback-only, but real —
+  tracked in `.planning/SECURITY-AUDIT-2026-07-03.md` (HIGH-2) for the hardening pass.
+- **Decoded-image dimension clamp.** The 8 MB response cap bounds encoded bytes,
+  not decoded pixels; a decompression-bomb image could exhaust memory (MEDIUM-1).
 
 ---
 
@@ -164,6 +170,26 @@ stay.**
 Without it, rapid UI interactions (e.g., DynamicIslandWidget size picker clicked
 quickly) can enqueue multiple mode transitions in the same run-loop tick, each
 hosting the full glass tree. The guard drops duplicate in-flight transitions.
+
+### Measured CPU Budget (Phase 0 UAT amendment, 2026-07-03)
+
+The rules above are structural — they prohibit *self-sustaining* re-render loops,
+not intentional animation work. The historical "~0.0% steady-playback CPU"
+figure was a proxy for loop absence that predates the deliberately-shipped
+visualizer animations (10 Hz `TimelineView` in `DesktopWidgetCanvas`, island
+equalizer, spinning vinyl disc). Measured on the landed Phase 0 tree
+(bridge-path UAT, 2026-07-03; corroborated by 00-01's local-playback profile):
+
+- **Idle (no track): ~0.0%** — hard gate; any sustained idle CPU is a Rule 1–6
+  violation and a regression.
+- **Steady playback, widget visible & animating: ≤ 25%** (measured mean ~17.9%,
+  max 24.3%) — the cost is the by-design animations; it must drop back to ~0.0%
+  when playback stops or nothing animates.
+
+Phase 1's perf-guard tests are the enforcement point for both budgets. If the
+animation cost should be reduced instead (lower fps, pause when unfocused or
+occluded, `EqualizerBars`/`VinylDiskView` active gating), treat that as a
+deliberate product change — the structural rules do not require it.
 
 ---
 
