@@ -14,3 +14,5 @@ SafariExtension/**/xcuserdata/
 VinylPod-Complete-Documentation.md
 # Orchestrator web-research cache (regenerable; 00-02 drift disposition)
 .planning/research/.cache/
+# Agent worktrees / harness scratch (never publish)
+.claude/
