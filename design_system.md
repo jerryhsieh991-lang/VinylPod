@@ -1,7 +1,7 @@
 # VinylPod — "Ai Structuer" Design System
 
 > Status: **DRAFT — awaiting founder sign-off**
-> Date: 2026-06-28
+> Date: 2026-06-28 · Last-verified (spot-check): 2026-07-03 — base tokens consistent with `Sources/VinylPod/Core/Theme.swift`; per-widget dimension tables not exhaustively re-audited.
 > Mood: Dark Minimalist · Calm · Static-landscape aesthetic (暗色极简 · 宁静)
 
 ---

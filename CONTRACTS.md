@@ -1,4 +1,5 @@
 # VinylPod — Frozen Module Contracts
+<!-- Last-verified: 2026-07-03 · Frozen seam spec: intentionally minimal (not a full API dump). Names must match code. -->
 
 All modules code against these EXACT names. Core already exists and compiles.
 Do **not** edit Core or Package.swift. Add files only in your own folder.
@@ -9,7 +10,7 @@ Do **not** edit Core or Package.swift. Add files only in your own folder.
   `fade`, `spring`, `title()/body()/caption()`.
 - `struct Track { title, artist, album, artwork: NSImage?, duration, source, url; .empty; isEmpty }`
 - `enum PlaybackSource { localFile, browser, spotify, appleMusic, none; displayName; sfSymbol }`
-- `enum WindowMode { small, normal, large, desktopWidget; displayName; defaultSize; shortcutKey }`
+- `enum WindowMode { small, normal, regular, large, desktopWidget; displayName; defaultSize; shortcutKey }` (⌘1–⌘5)
 - `enum DesktopLayer { front, back; displayName }`
 - `@MainActor final class NowPlayingService: ObservableObject`
   - published: `track`, `isPlaying`, `position`, `duration`
@@ -48,4 +49,4 @@ Produce exactly these public types with `init()`:
 - `VinylPodApp.swift` with `@main struct VinylPodApp: App` — REPLACES `_TempMain.swift` (delete it).
 - Wires Audio into NowPlayingService, builds `WindowManager` with a content factory that
   injects environment objects into `ModeContentView`, provides MenuBarExtra (mode picker +
-  desktop front/behind toggle + quit) and ⌘1–⌘4 shortcuts.
+  desktop front/behind toggle + quit) and ⌘1–⌘5 shortcuts.
