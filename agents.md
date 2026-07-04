@@ -1,4 +1,5 @@
 # agents.md — Swarm operating rules (VinylPod ecosystem)
+<!-- Last-verified: 2026-07-03 · Ground truth verified by building. WindowMode = 5 (small/normal/regular/large/desktopWidget), ⌘1–5. -->
 
 Commander model: one orchestrator (main context) instantiates roles as needed;
 roles are RESPONSIBILITY LANES, not necessarily separate processes. A lane is

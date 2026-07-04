@@ -1,5 +1,5 @@
 # VinylPod — 架構六大支柱 (architecture.md)
-<!-- Last-verified: 2026-07-01 · 做架構決策時讀這份;日常指令與紅線見 CLAUDE.md -->
+<!-- Last-verified: 2026-07-03 · 做架構決策時讀這份;日常指令與紅線見 CLAUDE.md -->
 
 ## 系統鳥瞰
 ```
@@ -11,7 +11,7 @@ Bridge ──► Core (NowPlayingService / AppSettings / AppEnvironment)
     ┌─────────┼──────────┬──────────┐
   Audio    Windowing   Views    MenuBar / Hotkeys
               │
-        AppKit 視窗層 (small/normal/large/desktopWidget, front/back layer)
+        AppKit 視窗層 (small/normal/regular/large/desktopWidget, front/back layer)
 ```
 
 ## 支柱 1 — UI/UX 規範(單一設計語言)
@@ -54,3 +54,4 @@ Bridge ──► Core (NowPlayingService / AppSettings / AppEnvironment)
 > 重大取捨用 3 行記在這裡:日期 / 決定 / 為什麼。範例:
 - 2026-06-28:app 整併為單一 SPM 專案(原 Xcode 專案封存)— 降低建置摩擦、CLT 可建。
 - 2026-06-30:WS bridge 改 lazy connect — 閒置重試耗電且刷 log。
+- 2026-07-03:文件對齊程式碼 — WindowMode 補 `regular`(共 5 種,⌘1–5);同步 README / CONTRACTS / codex。

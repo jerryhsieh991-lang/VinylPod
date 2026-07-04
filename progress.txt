@@ -1,5 +1,64 @@
 # progress.txt — restart point (keep newest entry on top)
 
+## 2026-07-03 — Doc sync to code + post-commit doc-drift hook
+Reconciled the canonical doc set to code (code wins). WindowMode is 5
+(small/normal/regular/large/desktopWidget, ⌘1–5); docs had drifted to "4 / ⌘1–4".
+FIXED:
+- README.md: 4→5 modes everywhere; popover list (Small/Medium/Regular/Large/
+  Desktop); ⌘1–4→⌘1–5; Status block — browser-extension MediaSession capture is
+  DONE (was mislabeled "Scaffolded, needs Xcode"); now points to codex.md.
+- CONTRACTS.md: WindowMode enum gains `regular`; ⌘1–4→⌘1–5; added Last-verified.
+- architecture.md: window-layer list + `regular`; ADR-lite entry; Last-verified 07-03.
+- PRD.md: "no application code written yet" → HISTORICAL/Built, points to codex.md.
+- design_system.md: honest spot-check Last-verified (base tokens vs Theme.swift).
+- agents.md: Last-verified marker.
+- NEW this session: codex.md (WHAT-exists map) + rewritten CLAUDE.md (HOW-to-work),
+  the two-file pair; both dated 2026-07-03.
+HOOK: .git/hooks/post-commit (plain sh, NOT tracked) warns when a commit changes
+Sources/*.swift but touches no doc (*.md/*.txt/docs//*.json). Non-blocking.
+NOTE: zero Swift changed — 0-warning build state stands (not rebuilt). Tree still
+dirty on claude/security-crash-fixes; nothing committed.
+
+## 2026-07-02 — E2E size-switching GREEN (AX exposure + harness fixes)
+ALL PHASES TRUE (report /tmp/vinylpod-e2e-size-switching-report.json, 0 failures,
+~3m13s run). What it took, layer by layer:
+
+APP (Sources/, Core/ untouched):
+- WindowManager.makeWindow/makeDynamicIslandWindow: borderless nonactivating
+  NSPanels are AX-invisible by default -> exposeToAccessibility() opts them in
+  (setAccessibilityElement/Role .window/Subrole .standardWindow/Title).
+- SettingsMenu trigger + chevron/check/back rows, AlbumArtCloseButton "Close":
+  mirror accessibilityLabel into .accessibilityIdentifier — System Events CANNOT
+  read AXDescription/AXTitle off SwiftUI elements (raw AX clients can); the ONLY
+  string attribute it surfaces is AXIdentifier.
+- Do NOT wrap the trigger in .accessibilityElement(children:.ignore): the
+  synthesized element drops AXPress and automation clicks become no-ops.
+- NEW PinnablePanel (WindowManager.swift): AXPosition writes BYPASS isMovable;
+  desktop-widget frame is pinned (snap-back in setFrameOrigin/setFrame) so the
+  sticky contract holds against AX moves. Pin set/cleared in sizeAndPosition.
+
+HARNESS (e2e/e2e_size_switching.spec.js):
+- safeValue: JXA property specifiers must be invoked el[key]() — fn.call(el)
+  throws -1700 on EVERY read (this had silently broken all role/name reads and
+  forced synthetic fallbacks since the harness was written).
+- Tree walk: uiElements-only BFS (the old 10-collection expansion multiplied
+  Apple Events ~10x); ONLY AXStaticText/AXMenuItem are leaves — popovers attach
+  as AX CHILDREN of their anchor (trigger button in medium+, artwork image for
+  the Window-behavior popover) so buttons/images must be descended.
+- findNamedButton/textExists match AXIdentifier; clickNamedButton roots at
+  axPrimaryWindow() — the dynamic island also has a Settings trigger but its
+  popover is ORPHANED from AX (never appears anywhere), only the main widget
+  window popover is drivable.
+- System Events coordinate "click at" NEVER reaches the nonactivating panels
+  (CGEvent posts do); pressEscape needs frontmost first. Waits: dropdown +
+  window-behavior checks now 60s (one AX sweep costs seconds; 2500ms = 1 try).
+
+GOTCHAS FOR NEXT RUN: pkill VinylPod first — OTHER Claude sessions launch their
+own dist builds (merge-main worktree, /Applications copy) and steal the AX
+namespace mid-run. Disk hit 100% mid-session (old scratchpad build caches,
+/private/tmp/vinylpod-run-build) — freed ~900MB, check df before swift build.
+Report timestamps are UTC (PDT local): a "stale" report may be an old run.
+
 ## 2026-07-02 — Creative layer, slice 1 (GroovePulse)
 DECISION (user-aligned): audio reactivity = beat SIMULATION. No system audio
 tap (MediaSession/DOM cannot expose amplitude; CoreAudio tap needs macOS 14.4+
