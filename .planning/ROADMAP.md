@@ -59,7 +59,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 00-04: Refresh the `.planning/codebase/` map after WIP lands so docs reflect committed state (FND-04)
+- [x] 00-04: Refresh the `.planning/codebase/` map after WIP lands so docs reflect committed state (FND-04)
 
 ### Phase 1: Test Foundation
 
@@ -203,7 +203,7 @@ Critical path executes Phase 0 → 2 → 3 → 4 → 6; Phase 1 and Phase 5 run 
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. Land WIP & Reconcile | 4/4 | Complete   | 2026-07-03 |
+| 0. Land WIP & Reconcile | 4/4 | Complete    | 2026-07-03 |
 | 1. Test Foundation | 0/4 | Not started | - |
 | 2. Sandbox/Loopback + Signing Spike | 0/2 | Not started | - |
 | 3. MAS Scaffold + Private-Framework Removal | 0/5 | Not started | - |

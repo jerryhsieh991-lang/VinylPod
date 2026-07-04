@@ -32,21 +32,20 @@ Show what's playing — beautifully, calmly, and reliably — for *browser* play
 - ✓ Empty / loading / error states; procedural + custom-image landscape backgrounds — existing
 - ✓ Desktop-widget front/behind layer toggle (above/below desktop icons) — existing
 - ✓ Hardened bridge threat model (loopback bind, 256 KB frame cap, 6-connection cap, SSRF guard, `data:` decode, 8 MB image cap) — existing
-- ✓ Six documented performance invariants preventing the historical ~98% idle-CPU render loop — existing
+- ✓ Six documented performance invariants preventing the historical ~98% idle-CPU render loop — existing; re-verified in Phase 0 with a measured CPU-budget amendment (idle ~0.0% hard gate, animated playback ≤ 25%)
+- ✓ Land & reconcile: full WIP committed as reviewable commits, `docs/system-design/` canonical, stale docs dispositioned, codebase map refreshed — Validated in Phase 0: Land WIP & Reconcile (2026-07-03)
+- ✓ Housekeeping: `.playwright-mcp/` + stitch-file gitignored, stray root files dispositioned, seven `*_features.json` consolidated into 07-feature-inventory — Validated in Phase 0 (2026-07-03)
 
 ### Active
 
 <!-- This cycle: a full re-plan treating docs as spec. Decisions: BLEND UI + PURSUE MAC APP STORE. Hypotheses until shipped & validated. -->
 
-- [ ] Land & reconcile: commit WIP drift, designate `docs/system-design/` canonical, delete duplicate/stale docs, refresh map
 - [ ] Test foundation: add an SPM test target; unit-test bridge security (`isPublicHost`, `decodeDataURI`), `updateFromExternal` change-gating, perf invariants
 - [ ] Bridge hardening gaps: extension authentication (shared secret/nonce), per-frame rate limiting, Origin validation
 - [ ] Wire Phase 2 capture: real Spotify / Apple Music / browser source selection end-to-end; finish source-precedence rules
 - [ ] Last.fm scrobbling: real credentials + wiring (currently empty-string placeholders → no-op)
 - [ ] UI refinement (BLEND): keep glass architecture/tokens; fold selected improvements from the new "VinyIpod UI" mockups into the five sizes + Dynamic Island
 - [ ] Mac App Store readiness: Xcode project/target, code signing + entitlements, App Sandbox, remove/guard private `MediaRemote.framework`, Safari Web Extension packaging, notarization pipeline
-- [ ] Housekeeping: `.gitignore` `.playwright-mcp/`, remove empty `claude.md`, consolidate seven `*_features.json`
-
 ### Out of Scope
 
 - Full streaming playback control beyond basic transport (queue editing, library browsing) — not core to the now-playing value
@@ -104,4 +103,4 @@ This document evolves at phase transitions and milestone boundaries.
 5. Update Context with current state
 
 ---
-*Last updated: 2026-07-03 after initialization*
+*Last updated: 2026-07-03 after Phase 0 completion (Land WIP & Reconcile)*
