@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to plan
-stopped_at: Phase 5 UI-SPEC approved (6/6 dimensions PASS); commit deferred — Desktop .git missing HEAD tree object 3e9abce8
-last_updated: "2026-07-03T23:51:57.868Z"
+stopped_at: Phase 5 UI-SPEC approved + pre-publish security audit done; published PRIVATE to github.com/jerryhsieh991-lang/VinylPod (main). Hardening backlog (bridge auth, SSRF, NSPanel crash) → /gsd-secure-phase before public.
+last_updated: "2026-07-04T05:57:44.219Z"
 progress:
   total_phases: 7
   completed_phases: 1
@@ -48,9 +48,9 @@ Close the owed Phase 0 human check (launch dist/VinylPod.app, play via browser e
 
 ## Session
 
-**Last session:** 2026-07-03T23:51:57.859Z
-**Stopped at:** Phase 5 UI-SPEC approved (6/6 dimensions PASS); commit deferred — Desktop .git missing HEAD tree object 3e9abce8
-**Resume file:** .planning/phases/05-ui-blend/05-UI-SPEC.md
+**Last session:** 2026-07-04T05:57:44.210Z
+**Stopped at:** Phase 5 UI-SPEC approved + pre-publish security audit done; published PRIVATE to github.com/jerryhsieh991-lang/VinylPod (main). Hardening backlog (bridge auth, SSRF, NSPanel crash) → /gsd-secure-phase before public.
+**Resume file:** .planning/SECURITY-AUDIT-2026-07-03.md
 
 ## Key Context (carry into planning)
 
