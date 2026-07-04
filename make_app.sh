@@ -19,25 +19,25 @@ SCRATCH="${VINYLPOD_SCRATCH:-$HOME/.cache/vinylpod-build/$CHECKOUT_ID}"
 
 case "$SCRATCH" in
     "$HOME/Desktop/"*|"$HOME/Documents/"*|"$HOME/Library/Mobile Documents/"*)
-        echo "✗ scratch path ($SCRATCH) is inside an iCloud-synced folder; refusing." >&2
+        echo "ERROR: scratch path ($SCRATCH) is inside an iCloud-synced folder; refusing." >&2
         exit 1 ;;
 esac
 mkdir -p "$SCRATCH"
 
 # A leftover in-repo .build is never used (we always pass --scratch-path),
-# but it WOULD keep syncing to iCloud — warn so it gets deleted.
+# but it WOULD keep syncing to iCloud -- warn so it gets deleted.
 if [ -d .build ]; then
-    echo "⚠ stale ./.build exists in the repo — delete it: rm -rf \"$PWD/.build\"" >&2
+    echo "WARNING: stale ./.build exists in the repo -- delete it: rm -rf \"$PWD/.build\"" >&2
 fi
 
-echo "▶ Building ($CONFIG) → scratch: $SCRATCH"
+echo ">> Building ($CONFIG) -> scratch: $SCRATCH"
 swift build -c "$CONFIG" --scratch-path "$SCRATCH" 2>&1 \
     | grep -Ev "ld: warning|search path" | tail -3
 
 BIN_PATH="$(swift build -c "$CONFIG" --scratch-path "$SCRATCH" --show-bin-path)/$BIN_NAME"
-[ -f "$BIN_PATH" ] || { echo "✗ binary not found at $BIN_PATH"; exit 1; }
+[ -f "$BIN_PATH" ] || { echo "ERROR: binary not found at $BIN_PATH"; exit 1; }
 
-echo "▶ Assembling $APP…"
+echo ">> Assembling $APP ..."
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_PATH" "$APP/Contents/MacOS/$BIN_NAME"
@@ -73,5 +73,5 @@ PLIST
 # Ad-hoc codesign so macOS will launch it locally.
 codesign --force --deep --sign - "$APP" 2>/dev/null || echo "  (codesign skipped)"
 
-echo "✓ Built $APP"
-echo "  Run:  open \"$APP\"   (look for the ⊙ disc icon in the menu bar)"
+echo "OK: Built $APP"
+echo "  Run:  open \"$APP\"   (look for the disc icon in the menu bar)"

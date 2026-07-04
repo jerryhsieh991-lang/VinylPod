@@ -9,3 +9,4 @@ dist/
 SafariExtension/build/
 *.xcodeproj/xcuserdata/
 SafariExtension/**/xcuserdata/
+.playwright-mcp/

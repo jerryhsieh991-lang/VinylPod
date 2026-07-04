@@ -55,6 +55,10 @@ Native app  ─────────────────► NativeMediaRe
 - **Palette** (`Audio/ArtworkColorExtractor.swift`): `paletteOffMain` (nonisolated CoreImage) →
   Sendable `AlbumColorPalette` → liquid-glass membrane tint scaled by `GlassTintStrength`.
 - **Composition root:** `AppEnvironment.shared` (`Core/Services.swift`) holds `nowPlaying` + `settings`.
+- **Lyrics** (`Lyrics/` + `Core/LyricsProviding.swift`): on `$track` change a text-only Sendable
+  `TrackMetadata` queries `LRCLibLyricsProvider` (LRCLIB.net, free/keyless, positive+negative cache);
+  `LRCParser` builds a Sendable `LyricsTimeline`; the `LyricsEngine` **actor** does off-main
+  binary-search cue lookup; `LiveLyricsScrollView` renders auto-scrolling synced lyrics. No `@unchecked`.
 
 Deeper: `architecture.md` (six pillars), `docs/system-design/01…03`.
 
@@ -66,15 +70,16 @@ All paths below are confirmed present in `~/Projects/VinylPodMac`.
 
 ```
 Sources/VinylPod/
-  Core/        Models.swift · Services.swift · Theme.swift · Shortcuts.swift   ← FROZEN (see CONTRACTS.md)
+  Core/        Models.swift · Services.swift · Theme.swift · Shortcuts.swift · LyricsProviding.swift   ← FROZEN seams (CONTRACTS.md)
   Audio/       LocalAudioPlayer · MetadataReader · ArtworkColorExtractor       (AVFoundation / CoreImage)
   Bridge/      BrowserBridge.swift                                             (loopback WebSocket server)
   Capture/     NativeMediaRemoteCapture.swift                                  (private MediaRemote, dlopen'd, opt-in)
   Scrobbling/  LastFmClient · LastFmModels · LastFmScrobbler                   (Last.fm, off by default)
+  Lyrics/      LRCParser · LRCLibLyricsProvider (LRCLIB.net) · LyricsEngine actor · LiveLyricsScrollView  (synced .lrc lyrics)
   Windowing/   WindowManager.swift                                            (NSPanel reuse, levels, AX exposure)
   MenuBar/     MenuBarContentView.swift                                        (mode picker popover)
   Hotkeys/     HotKeyManager.swift                                             (Carbon global hotkeys)
-  App/         VinylPodApp.swift · WindowCoordinator.swift · SettingsEffects.swift
+  App/         VinylPodApp.swift · WindowCoordinator.swift · SettingsEffects.swift · SnapshotRenderer.swift (headless PNG dev tool)
   Views/       ModeContentView · GlassPanel · VisualEffectBlur · LandscapeBackground · ProgressBarView · TransportControls
   Views/Settings/  SettingsWindow + {General,Appearance,Capture,LastFm,About}SettingsSection.swift
   Views/Widget/    Small/Regular/Large glass widgets · DesktopWidgetCanvas · DynamicIslandWidget ·
@@ -108,9 +113,8 @@ dist/                 make_app.sh output → VinylPod.app (git-ignored)
 ## 4. Active Progress & Roadmap
 
 > Sync this section from `progress.txt` (newest entry on top) whenever a slice lands.
-> **Working branch:** `claude/security-crash-fixes` · **tree is currently dirty** (6 uncommitted files:
-> `AlbumArtCloseButton`, `SettingsMenu`, `WindowManager`, `e2e_size_switching.spec.js`, `features.json`,
-> `progress.txt`) — do **not** commit without asking.
+> **Default / published branch:** `main`. The `claude/security-crash-fixes` branch carries extra AX/e2e
+> hardening (committed there) not yet merged into `main`.
 
 **✅ Done & verified**
 - 0-warning `swift build`; app compiles, launches, renders.
@@ -124,9 +128,13 @@ dist/                 make_app.sh output → VinylPod.app (git-ignored)
   (groove/vinyl/liquid-disc share one tempo per song, no new render clock).
 - E2E: `bridge_stress_test.js`; `e2e_size_switching.spec.js` **GREEN** 2026-07-02 (5/5 modes, 0 failures)
   after AX-exposure fixes (`WindowManager.exposeToAccessibility`, `PinnablePanel`, JXA `el[key]()`).
+- **Synced lyrics** — `Lyrics/` module: LRCLIB.net provider (free/keyless, cached), tolerant `LRCParser`,
+  off-main `LyricsEngine` actor, auto-scrolling `LiveLyricsScrollView`.
+- **SnapshotRenderer** — headless `--render-snapshot` / `--dump-live` PNG dev tool for TCC-blocked
+  CI/agent layout verification.
 
 **🚧 In progress / uncommitted**
-- Security/crash-fix branch edits to `WindowManager` / `SettingsMenu` / `AlbumArtCloseButton`.
+- AX/e2e hardening on `claude/security-crash-fixes` (committed there); not yet merged to `main`.
 - Creative backlog: CRE-004 ambient color-temperature; optional cassette-hub micro-wobble.
 
 **🔜 Next**
@@ -155,8 +163,9 @@ Deeper: `progress.txt`, `docs/system-design/07-feature-inventory.md`.
 - **Dynamic Island Settings popover is orphaned from AX** — never appears in the accessibility tree, so
   it is not drivable headlessly; only the main widget-window popover is automatable.
 - **Docs reconciled 2026-07-03:** `README.md` / `CONTRACTS.md` / `architecture.md` synced to **5 modes / ⌘1–⌘5**
-  (was the old "4 / ⌘1–4" drift; `regular` had been added in code). A `.git/hooks/post-commit` hook now warns
-  when a `Sources/`-only commit leaves docs untouched. See `progress.txt`.
+  (was the old "4 / ⌘1–4" drift; `regular` had been added in code). A **local, untracked**
+  `.git/hooks/post-commit` reminder warns when a `Sources/`-only commit leaves docs untouched — it is not
+  part of a clone; re-add it locally if you want it. See `progress.txt`.
 - **Two diverged working copies exist.** `~/Projects/VinylPodMac` (this repo — eng/e2e/AX/creative work)
   and `~/Desktop/VinylPodMac` (a `.planning/` GSD docs branch, newer git timestamp). They have diverged;
   reconcile before assuming either is fully authoritative. **Never build under `~/Desktop`** (iCloud

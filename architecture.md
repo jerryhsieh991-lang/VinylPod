@@ -55,3 +55,4 @@ Bridge ──► Core (NowPlayingService / AppSettings / AppEnvironment)
 - 2026-06-28:app 整併為單一 SPM 專案(原 Xcode 專案封存)— 降低建置摩擦、CLT 可建。
 - 2026-06-30:WS bridge 改 lazy connect — 閒置重試耗電且刷 log。
 - 2026-07-03:文件對齊程式碼 — WindowMode 補 `regular`(共 5 種,⌘1–5);同步 README / CONTRACTS / codex。
+- 2026-07-03:新增 Lyrics 模組(LRCLIB.net 同步歌詞;LRCParser / LyricsEngine actor,全 Sendable)+ SnapshotRenderer;文件對齊 main,準備公開發佈 (MIT)。

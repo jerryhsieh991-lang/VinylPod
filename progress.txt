@@ -1,5 +1,19 @@
 # progress.txt — restart point (keep newest entry on top)
 
+## 2026-07-03 — Reconcile docs onto main + prep public GitHub release (MIT)
+main was 7 commits ahead of the doc branch (synced-lyrics pipeline, Dynamic
+Island + desktop-widget fixes). Cherry-picked the doc-sync commit onto main and
+documented what main actually has:
+- Lyrics module (Core/LyricsProviding seam; LRCParser; LRCLibLyricsProvider →
+  LRCLIB.net, free/keyless + pos/neg cache; LyricsEngine actor off-main cue
+  lookup; LiveLyricsScrollView) + App/SnapshotRenderer headless PNG dev tool —
+  added to codex.md / README.md / CONTRACTS.md / architecture.md.
+- Added MIT LICENSE; gitignored .playwright-mcp/.
+- Verified: ./make_app.sh release on main — Build complete, 0 warnings.
+- Publishing main (full history) to a public GitHub repo via the GitHub MCP.
+  NOTE: history holds .playwright-mcp/ browser dumps — audited, NO secrets/PII
+  (public-site DOM + ad-network noise from competitor research).
+
 ## 2026-07-03 — Doc sync to code + post-commit doc-drift hook
 Reconciled the canonical doc set to code (code wins). WindowMode is 5
 (small/normal/regular/large/desktopWidget, ⌘1–5); docs had drifted to "4 / ⌘1–4".

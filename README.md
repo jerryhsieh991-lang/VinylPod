@@ -27,6 +27,7 @@ Large / Desktop), toggle the desktop-widget layer (In Front / Behind), and quit.
 | `Audio/` | `LocalAudioPlayer` (AVFoundation), `MetadataReader` (ID3/AVAsset), `ArtworkColorExtractor` (adaptive accent). |
 | `Windowing/` | `WindowManager` — 5 window modes, resize-in-place, desktop-widget front/behind levels. |
 | `Views/` | Procedural ice-mountain background, glass panels, progress bar, transport controls, the 5 mode layouts, empty/loading/error states, drag-and-drop. |
+| `Lyrics/` | Synced `.lrc` lyrics — `LRCParser`, `LRCLibLyricsProvider` (LRCLIB.net), off-main `LyricsEngine` actor, `LiveLyricsScrollView`. |
 | `App/` + `MenuBar/` | App shell (accessory/menu-bar), startup wiring, mode picker, ⌘1–5 shortcuts. |
 
 ## Status
@@ -35,7 +36,8 @@ Large / Desktop), toggle the desktop-widget layer (In Front / Behind), and quit.
   playback, adaptive album-art accent, 5 window modes + Dynamic Island, menu bar
   + ⌘1–⌘5 shortcuts, empty/loading/error states, procedural + custom-image
   backgrounds. **Browser-extension MediaSession capture** via the loopback bridge
-  (`ws://127.0.0.1:8787`, flood-optimized). GroovePulse beat-simulation visualizer.
+  (`ws://127.0.0.1:8787`, flood-optimized). GroovePulse beat-simulation visualizer, and **synced lyrics**
+  (LRCLIB.net, free/keyless).
 - 🚧 **Scaffolded**: native Spotify / Apple Music *streaming connect* (needs OAuth /
   entitlements) and native `MediaRemote` capture (opt-in, OS-gated on macOS 15.4+).
   Last.fm scrobbling is wired but keyless (placeholder API keys).
