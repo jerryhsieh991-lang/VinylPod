@@ -22,6 +22,11 @@ Do **not** edit Core or Package.swift. Add files only in your own folder.
   - method: `setAccent(from: Color?)`
 - `@MainActor final class AppEnvironment { static let shared; nowPlaying; settings }`
 - Protocols: `AudioPlaying`, `MetadataReading`, `ArtworkColorExtracting` (see Services.swift).
+- `protocol LyricsProviding` + `struct TrackMetadata` (text-only, Sendable track snapshot) — lyrics seam.
+
+## Lyrics module — folder `Sources/VinylPod/Lyrics/`
+- `LRCParser` (stateless `.lrc` parse) · `LRCLibLyricsProvider: LyricsProviding` (LRCLIB.net, cached) ·
+  `LyricsEngine` (actor, off-main cue lookup) · `LiveLyricsScrollView`. All Sendable value types / actors.
 
 ## Audio module (Agent A) — folder `Sources/VinylPod/Audio/`
 Produce exactly these public types with `init()`:
