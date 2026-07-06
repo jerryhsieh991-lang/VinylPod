@@ -1,49 +1,86 @@
-# VinylPod (macOS)
+<div align="center">
 
-A native macOS menu-bar music companion — dark-minimalist, static landscape
-backdrop, glassmorphism, five window sizes. Captures & beautifully displays the
-now-playing track. See [`codex.md`](codex.md) for current state; [`PRD.md`](PRD.md)
-and [`design_system.md`](design_system.md) for product intent & design.
+# ⊙ VinylPod
 
-## Build & run
+**A liquid-glass now-playing widget for your Mac.**
 
-This machine has **Command Line Tools only (no Xcode)**, so the app is a Swift
-Package built with `swift build` and bundled into a `.app` by a script:
+Synced lyrics for anything you play — even in the browser. No accounts. No API keys.
 
-```bash
-./make_app.sh release      # builds + bundles → dist/VinylPod.app
-open dist/VinylPod.app      # look for the ⊙ disc icon in the menu bar
+[![Release](https://img.shields.io/github/v/release/jerryhsieh991-lang/VinylPod?color=C592AB&label=download&style=flat-square)](../../releases/latest)
+[![macOS 13+](https://img.shields.io/badge/macOS-13%2B-362833?style=flat-square&logo=apple&logoColor=white)](#quick-start)
+[![Swift 5.9](https://img.shields.io/badge/Swift-5.9-F0A4CF?style=flat-square&logo=swift&logoColor=white)](Package.swift)
+[![Zero dependencies](https://img.shields.io/badge/dependencies-none-7D86D9?style=flat-square)](Package.swift)
+[![License: MIT](https://img.shields.io/badge/license-MIT-3E3555?style=flat-square)](LICENSE)
+
+[**⬇ Download**](../../releases/latest) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Build from source](#build-from-source)
+
+<br>
+
+<img src="docs/assets/hero.jpg" alt="VinylPod desktop mode — a giant clock, album art and a spinning vinyl disc floating over a calm ice-mountain landscape" width="920">
+
+<sub>*Desktop mode — rendered by the app itself, no mockup. The landscape is the soul; the UI is a whisper of glass on top of it.*</sub>
+
+</div>
+
+<br>
+
+## Why VinylPod
+
+- **It sees what you're playing — without your passwords.** A tiny bundled browser extension mirrors any tab's Media Session (YouTube, Spotify Web, YouTube Music, Apple Music web…) into a native widget over a **loopback-only** WebSocket. Nothing ever leaves your Mac.
+- **Synced lyrics, keyless.** Live auto-scrolling lyrics from [LRCLIB](https://lrclib.net) — free, no API key, no sign-up, cached offline.
+- **Five sizes and a Dynamic Island.** From a 162-pt glass tile to a full ambient desktop scene (⌘1–⌘5). Float it above your windows — or *behind* them, like a living wallpaper.
+- **Album-aware glass.** The widget tints its glassmorphism from the album art's color palette, and the GroovePulse visualizer breathes with each song's tempo.
+- **Native and weightless.** Pure Swift + SwiftUI, zero third-party dependencies, a single 30 fps render clock that pauses when idle.
+
+## Quick start
+
+1. **[Download the latest release](../../releases/latest)**, unzip, and drag `VinylPod.app` to Applications.
+   First launch: **right-click → Open** (the app is ad-hoc signed, not notarized yet).
+   Look for the **⊙ disc icon** in your menu bar.
+2. **Play a local file** — drag any audio file onto the widget. Album art, palette tint and lyrics appear on their own.
+3. **Or capture your browser** — in Chrome / Edge / Brave open `chrome://extensions`, enable *Developer mode*, choose *Load unpacked*, and select the `BrowserExtension/` folder from the download. Then just play something in a tab.
+4. **Resize the vibe** — ⌘1–⌘5 or the menu-bar picker: Small · Medium · Regular · Large · Desktop, plus a Dynamic Island.
+
+## How it works
+
+```
+Browser tab ── content script ──► MV3 service worker ── ws://127.0.0.1:8787 ─┐
+Local file  ─────────────────────► AVFoundation player ──────────────────────┤
+                                                                             ▼
+                                          NowPlayingService (single source of truth)
+                                                             │
+                    ┌───────────────┬────────────────────────┼──────────────┐
+                    ▼               ▼                        ▼              ▼
+             palette extraction   glass widgets       synced lyrics    transport relay
+             (album-art tint)     (5 sizes + Island)  (LRCLIB, .lrc)   (play/pause/skip)
 ```
 
-The menu-bar icon opens a popover to switch size (Small / Medium / Regular /
-Large / Desktop), toggle the desktop-widget layer (In Front / Behind), and quit.
-⌘1–⌘5 switch sizes. Drag an audio file onto the window to play it.
+The bridge is deliberately paranoid: loopback-only bind, 256 KB frame cap, 6-connection cap, SSRF-guarded artwork fetches. Your listening never touches a third-party server — the only outbound request is the optional lyrics lookup.
 
-## Architecture (`Sources/VinylPod/`)
+## Build from source
 
-| Module | What it owns |
-|---|---|
-| `Core/` | Design tokens (`Theme`), models (`Track`, `WindowMode`…), shared services (`NowPlayingService`, `AppSettings`) + protocol seams. **The frozen contract** — see [`CONTRACTS.md`](CONTRACTS.md). |
-| `Audio/` | `LocalAudioPlayer` (AVFoundation), `MetadataReader` (ID3/AVAsset), `ArtworkColorExtractor` (adaptive accent). |
-| `Windowing/` | `WindowManager` — 5 window modes, resize-in-place, desktop-widget front/behind levels. |
-| `Views/` | Procedural ice-mountain background, glass panels, progress bar, transport controls, the 5 mode layouts, empty/loading/error states, drag-and-drop. |
-| `Lyrics/` | Synced `.lrc` lyrics — `LRCParser`, `LRCLibLyricsProvider` (LRCLIB.net), off-main `LyricsEngine` actor, `LiveLyricsScrollView`. |
-| `App/` + `MenuBar/` | App shell (accessory/menu-bar), startup wiring, mode picker, ⌘1–5 shortcuts. |
+Command Line Tools are enough — no Xcode needed:
 
-## Status
+```bash
+git clone https://github.com/jerryhsieh991-lang/VinylPod.git
+cd VinylPod
+./make_app.sh release      # swift build + bundle → dist/VinylPod.app
+open dist/VinylPod.app
+```
 
-- ✅ **Done & verified**: compiles, launches, renders. Local-file drag-drop
-  playback, adaptive album-art accent, 5 window modes + Dynamic Island, menu bar
-  + ⌘1–⌘5 shortcuts, empty/loading/error states, procedural + custom-image
-  backgrounds. **Browser-extension MediaSession capture** via the loopback bridge
-  (`ws://127.0.0.1:8787`, flood-optimized). GroovePulse beat-simulation visualizer, and **synced lyrics**
-  (LRCLIB.net, free/keyless).
-- 🚧 **Scaffolded**: native Spotify / Apple Music *streaming connect* (needs OAuth /
-  entitlements) and native `MediaRemote` capture (opt-in, OS-gated on macOS 15.4+).
-  Last.fm scrobbling is wired but keyless (placeholder API keys).
+> Toolchain note: the macOS 26+ SDK makes SwiftUI `@State` a macro whose plugin ships only with Xcode; the code uses `typealias VPState = SwiftUI.State` (`@VPState`) so it builds under plain Command Line Tools.
 
-> Live feature state is tracked in [`codex.md`](codex.md); this list is a summary.
+## Roadmap
 
-> Toolchain note: the macOS 26+ SDK makes SwiftUI `@State` a macro whose plugin
-> ships only with Xcode. We use `typealias VPState = SwiftUI.State` + `@VPState`
-> to build under Command Line Tools. Install Xcode to use `@State` directly.
+- Native Spotify / Apple Music connect (seams in place, needs OAuth + entitlements)
+- Last.fm scrobbling (wired, awaiting real API keys + Keychain storage)
+- Notarized builds & a Homebrew cask
+- More landscape packs — the ice mountain is only the first soul
+
+## For developers
+
+The engineering docs live in the repo root: [`codex.md`](codex.md) (living project map) · [`architecture.md`](architecture.md) · [`CONTRACTS.md`](CONTRACTS.md) (frozen module seams) · [`design_system.md`](design_system.md) (design tokens) · [`PRD.md`](PRD.md) · [`SECURITY.md`](SECURITY.md).
+
+## License
+
+[MIT](LICENSE) © 2026 jerryhsieh991-lang
