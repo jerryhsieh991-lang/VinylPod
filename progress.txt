@@ -1,5 +1,15 @@
 # progress.txt — restart point (keep newest entry on top)
 
+## 2026-07-05 — Public launch polish: README + v1.0.0 release (shipped to main)
+Product-first README landed via PR #1 (hero = REAL --render-snapshot output of
+Desktop mode from a fresh release build — no mockup; 200KB jpg in docs/assets/).
+Repo description + 10 topics set via API. Published GitHub Release v1.0.0:
+VinylPod-1.0.0-macos.zip (app ad-hoc signed + BrowserExtension/ + INSTALL.txt,
+sha256 672c25c6…). Known gap: not notarized (right-click→Open); next: playing-
+state screenshots (--dump-live while a track plays), notarization, launch posts
+(r/macapps, Show HN). Built & verified: swift build -c release green pre-bundle.
+
+
 ## 2026-07-03 — Reconcile docs onto main + prep public GitHub release (MIT)
 main was 7 commits ahead of the doc branch (synced-lyrics pipeline, Dynamic
 Island + desktop-widget fixes). Cherry-picked the doc-sync commit onto main and
