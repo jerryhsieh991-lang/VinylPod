@@ -13,8 +13,7 @@ here, then dive into the section you care about.
 **Canonical notice:** this folder is the **single canonical product +
 architecture spec** for VinylPod. Root-level `PRD.md` and `design_system.md`
 are historical documents kept for original intent; `CONTRACTS.md` remains
-the frozen public-API name contract and is not superseded by this folder;
-`.planning/` holds the current requirements and roadmap.
+the frozen public-API name contract and is not superseded by this folder.
 
 | # | Doc | Covers |
 |---|-----|--------|

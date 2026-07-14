@@ -54,7 +54,7 @@ fields.
 |----|--------|--------------------|
 | T1 | **DoS via frame flooding** — extension hammers the server with large or rapid frames | `ws.maximumMessageSize = 256 * 1024` (NWProtocol option); `handle()` re-checks `data.count <= 256 * 1024` before decode |
 | T2 | **Connection exhaustion** — hundreds of concurrent connections pile up unbounded | `accept()` caps at 6; oldest connection is evicted when the cap is hit |
-| T3 | **SSRF via artwork URL** — payload supplies `artwork: "http://192.168.1.1/admin"` to reach a private host | ⚠️ **PARTIAL — bypassable, hardening pending.** `isPublicHost()` string-matches the literal host against loopback (`127.*`, `localhost`, `::1`, `0.0.0.0`), link-local (`169.254.*`), RFC-1918, `.local`/`.localhost`. It does **not** re-validate the resolved IP, HTTP redirect targets, or numeric/IPv6 IP encodings (`http://2130706433/`, `0x7f000001`, `[fe80::1]`, `[::ffff:127.0.0.1]`), so those bypass it. Impact is *blind* SSRF (response only decoded as an image, loopback-only). See `.planning/SECURITY-AUDIT-2026-07-03.md` HIGH-2. |
+| T3 | **SSRF via artwork URL** — payload supplies `artwork: "http://192.168.1.1/admin"` to reach a private host | ⚠️ **PARTIAL — bypassable, hardening pending.** `isPublicHost()` string-matches the literal host against loopback (`127.*`, `localhost`, `::1`, `0.0.0.0`), link-local (`169.254.*`), RFC-1918, `.local`/`.localhost`. It does **not** re-validate the resolved IP, HTTP redirect targets, or numeric/IPv6 IP encodings (`http://2130706433/`, `0x7f000001`, `[fe80::1]`, `[::ffff:127.0.0.1]`), so those bypass it. Impact is *blind* SSRF (response only decoded as an image, loopback-only). Tracked as HIGH-2 in the security backlog. |
 | T4 | **Local file read via `file://` URL** — payload supplies `artwork: "file:///etc/passwd"` | `loadArtwork()` only proceeds if scheme is `http` or `https`; all other schemes are rejected before any fetch |
 | T5 | **Memory exhaustion via huge image response** — server returns a multi-GB image body | `URLSession` response capped at `8 * 1024 * 1024` bytes; responses larger than 8 MB are silently discarded |
 | T6 | **`data:` URI → `file://` dereference** — payload supplies a `data:` URI that could trick `URL(fileURLWithPath:)` | `decodeDataURI()` splits the string manually (no URL loading, no `Data(contentsOf:)`); only the payload after the comma is decoded as base64 or percent-encoding |
@@ -79,7 +79,7 @@ fields.
 - **SSRF resolved-IP / redirect / encoding checks (T3).** The artwork-URL guard
   validates only the literal host string; it does not check the resolved IP, follow-up
   redirect targets, or numeric/IPv6 encodings. Blind, loopback-only, but real —
-  tracked in `.planning/SECURITY-AUDIT-2026-07-03.md` (HIGH-2) for the hardening pass.
+  tracked as HIGH-2 in the security backlog for the hardening pass.
 - **Decoded-image dimension clamp.** The 8 MB response cap bounds encoded bytes,
   not decoded pixels; a decompression-bomb image could exhaust memory (MEDIUM-1).
 

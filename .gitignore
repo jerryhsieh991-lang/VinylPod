@@ -13,5 +13,5 @@ SafariExtension/**/xcuserdata/
 # Agent worktrees / harness scratch (never publish)
 .claude/
 # Regenerable orchestrator cache + generated doc stitch
-.planning/research/.cache/
+.planning/
 VinylPod-Complete-Documentation.md
